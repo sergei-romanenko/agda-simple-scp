@@ -12,6 +12,15 @@ open import Relation.Binary.PropositionalEquality renaming ([_] to ≡[_])
 
 open ≡-Reasoning
 
+++-[] : ∀ {ℓ} {A : Set ℓ} (xs : List A) →
+  xs ++ [] ≡ xs
+++-[] [] = refl
+++-[] (x ∷ xs) = cong (_∷_ x) (++-[] xs)
+
+++-assoc : ∀ {ℓ} {A : Set ℓ} (xs ys zs : List A) →
+  (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
+++-assoc [] ys zs = refl
+++-assoc (x ∷ xs) ys zs = cong (_∷_ x) (++-assoc xs ys zs)
 
 foldl⇒foldr : ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
                 foldl f n xs ≡ foldr (λ b g x → g (f x b)) id xs n
