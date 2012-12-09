@@ -31,15 +31,21 @@ data Trm : Set where
   IfNil  : (t0 : Trm) → (t1 : Trm) → (t2 : Trm) → Trm
   Bottom : Trm
 
+-- evalSel
+
 evalSel : (sel : Selector) → (v : Val) → Val
-evalSel sel (VCons v1 v2) with sel
-... | HD = v1
-... | TL = v2
-evalSel sel _ = VBottom
+evalSel sel VNil = VBottom
+evalSel sel VBottom = VBottom
+evalSel HD (VCons v1 v2) = v1
+evalSel TL (VCons v1 v2) = v2
+
+--evalSels
 
 evalSels : (sels : List Selector) (v : Val) → Val
 evalSels sels v =
   foldl (flip evalSel) v sels
+
+-- evalT
 
 evalT : (t : Trm) (v : Val) →  Val
 evalT-IfNil : (v0 : Val) (t1 t2 : Trm) (v : Val) →  Val
@@ -50,17 +56,13 @@ evalT (Sel sel) v = evalSel sel v
 evalT Id v = v
 evalT (Cmp t1 t2) v = evalT t1 (evalT t2 v)
 evalT (IfNil t0 t1 t2) v = evalT-IfNil (evalT t0 v) t1 t2 v
-{-
-evalT (IfNil t0 t1 t2) v with evalT t0 v
-... | VNil = evalT t1 v
-... | VCons v1 v2 = evalT t2 v
-... | VBottom = VBottom
--}
 evalT Bottom v = VBottom
 
 evalT-IfNil VNil t1 t2 v = evalT t1 v
 evalT-IfNil (VCons v1 v2) t1 t2 v = evalT t2 v
 evalT-IfNil VBottom t1 t2 v = VBottom
+
+-- NTrm
 
 data NTrm : Set where
   NNil    : NTrm 
@@ -69,14 +71,21 @@ data NTrm : Set where
   NIfNil  : (sels : List Selector) → (nt1 : NTrm) → (nt2 : NTrm) → NTrm
   NBottom : NTrm
 
+-- sel2trm
+
 sel2trm : (t : Trm) → (sel : Selector) → Trm
 --sel2trm Id sel = Sel sel
-sel2trm t  sel = Cmp (Sel sel) t
+sel2trm t sel = Cmp (Sel sel) t
+
+-- sels2trm
 
 sels2trm : (sels : List Selector) → Trm
 sels2trm sels = foldl sel2trm Id sels
 
+-- ntrm2trm
+
 ntrm2trm : (nt : NTrm) → Trm
+
 ntrm2trm NNil = Nil
 ntrm2trm (NCons nt1 nt2) = Cons (ntrm2trm nt1) (ntrm2trm nt2)
 ntrm2trm (NSelCmp sels) = sels2trm sels
@@ -84,13 +93,19 @@ ntrm2trm (NIfNil sels nt1 nt2) =
   IfNil (sels2trm sels) (ntrm2trm nt1) (ntrm2trm nt2)
 ntrm2trm NBottom = Bottom
 
+-- evalNT
+
 evalNT : (nt : NTrm) (v : Val) → Val
 evalNT nt v = evalT (ntrm2trm nt) v
+
+-- lem-evalT-sels2trm-r
 
 lem-evalT-sels2trm-r : ∀ rsels v →
   evalT (foldr (flip sel2trm) Id rsels) v ≡
   foldr evalSel v rsels
+
 lem-evalT-sels2trm-r [] v = refl
+
 lem-evalT-sels2trm-r (sel ∷ rsels) v =
   begin
     evalT (foldr (flip sel2trm) Id (sel ∷ rsels)) v
@@ -106,35 +121,47 @@ lem-evalT-sels2trm-r (sel ∷ rsels) v =
     foldr evalSel v (sel ∷ rsels)
   ∎
 
+-- lem-evalT-sels2trm
+
 lem-evalT-sels2trm : ∀ sels v →
   evalT (sels2trm sels) v ≡ evalSels sels v
+
 lem-evalT-sels2trm sels v =
   begin
     evalT (sels2trm sels) v
       ≡⟨ refl ⟩
     evalT (foldl sel2trm Id sels) v
-      ≡⟨ cong (λ e → evalT e v) (foldl→foldr-reverse sel2trm Id sels) ⟩
+      ≡⟨ cong (λ e → evalT e v) (foldl⇒foldr-reverse sel2trm Id sels) ⟩
     evalT (foldr (flip sel2trm) Id (reverse sels)) v
-      ≡⟨ lem-evalT-sels2trm-r (foldl (λ z z' → z' ∷ z) [] sels) v ⟩
+      ≡⟨ lem-evalT-sels2trm-r (foldl (λ sels' sel → sel ∷ sels') [] sels) v ⟩
     foldr evalSel v (reverse sels)
-      ≡⟨ sym (foldl→foldr-reverse (flip evalSel) v sels) ⟩
+      ≡⟨ sym (foldl⇒foldr-reverse (flip evalSel) v sels) ⟩
     foldl (flip evalSel) v sels
       ≡⟨ refl ⟩
     evalSels sels v
   ∎
 
+-- lem-evalSelsVBottom
+
 lem-evalSelsVBottom : ∀ (sels : List Selector) →
   evalSels sels VBottom ≡ VBottom
+
 lem-evalSelsVBottom [] = refl
 lem-evalSelsVBottom (sel ∷ sels) = lem-evalSelsVBottom sels
 
+-- lem-evalSelsAppend
+
 lem-evalSelsAppend : ∀ (sels1 sels2 : List Selector) (v : Val) →
   evalSels (sels1 ++ sels2) v ≡ evalSels sels2 (evalSels sels1 v)
+
 lem-evalSelsAppend [] sels2 v = refl
 lem-evalSelsAppend (sel ∷ xs) sels2 v =
   lem-evalSelsAppend xs sels2 (evalSel sel v)
 
+-- normSelNCmp
+
 normSelNCmp : (sel : Selector) (nt : NTrm) → NTrm
+
 normSelNCmp sel NNil = NBottom
 normSelNCmp HD (NCons nt1 nt2) = nt1
 normSelNCmp TL (NCons nt1 nt2) = nt2
