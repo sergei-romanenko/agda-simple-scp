@@ -74,7 +74,7 @@ data NTrm : Set where
 -- sel2trm
 
 sel2trm : (t : Trm) → (sel : Selector) → Trm
---sel2trm Id sel = Sel sel
+sel2trm Id sel = Sel sel
 sel2trm t sel = Cmp (Sel sel) t
 
 -- sels2trm
@@ -111,15 +111,27 @@ lem-evalT-sels2trm-r (sel ∷ rsels) v =
     evalT (foldr (flip sel2trm) Id (sel ∷ rsels)) v
       ≡⟨ refl ⟩
     evalT (sel2trm (foldr (flip sel2trm) Id rsels) sel) v
-      ≡⟨ refl ⟩
+      ≡⟨ helper (foldr (flip sel2trm) Id rsels)  ⟩
+{-
     evalT (Cmp (Sel sel) (foldr (flip sel2trm) Id rsels)) v
       ≡⟨ refl ⟩
+-}
     evalSel sel (evalT (foldr (flip sel2trm) Id rsels) v)
       ≡⟨ cong (evalSel sel) (lem-evalT-sels2trm-r rsels v) ⟩
+
     evalSel sel (foldr evalSel v rsels)
       ≡⟨ refl ⟩
     foldr evalSel v (sel ∷ rsels)
   ∎
+  where
+    helper : ∀ t → evalT (sel2trm t sel) v ≡ evalSel sel (evalT t v)
+    helper Id = refl
+    helper Nil = refl
+    helper (Cons t1 t2) = refl
+    helper (Sel sel') = refl
+    helper (Cmp t1 t2) = refl
+    helper (IfNil t0 t1 t2) = refl
+    helper Bottom = refl
 
 -- lem-evalT-sels2trm
 
@@ -294,7 +306,9 @@ normSelsNCmpPreservesEval sels nt v =
 
 lem-normSelsNCmp-NSelCmp : ∀ (sels1 sels2 : List Selector) →
   normSelsNCmp sels1 (NSelCmp sels2) ≡ NSelCmp (sels2 ++ sels1)
-lem-normSelsNCmp-NSelCmp [] sels2 rewrite ++-[] (sels2)  = refl
+lem-normSelsNCmp-NSelCmp [] sels2
+  rewrite ++-[] (sels2)
+  = refl
 lem-normSelsNCmp-NSelCmp (sel ∷ sels1) sels2 =
   begin
     normSelsNCmp (sel ∷ sels1) (NSelCmp sels2)
@@ -308,10 +322,105 @@ lem-normSelsNCmp-NSelCmp (sel ∷ sels1) sels2 =
     NSelCmp (sels2 ++ sel ∷ sels1)
   ∎
 
--- lem-normNCmpSels-app
+-- normNCmpSels
+
+normNCmpSels : (nt : NTrm) (sels : List Selector) → NTrm
+
+normNCmpSels NNil sels = NNil
+normNCmpSels (NCons nt1 nt2) sels =
+  NCons (normNCmpSels nt1 sels) (normNCmpSels nt2 sels)
+normNCmpSels (NSelCmp sels2) sels = NSelCmp (sels ++ sels2)
+normNCmpSels (NIfNil sels2 nt1 nt2) sels =
+  NIfNil (sels ++ sels2) (normNCmpSels nt1 sels) (normNCmpSels nt2 sels)
+normNCmpSels NBottom sels = NBottom
+
+-- lem-normNCmpSelsPreservesEval
+
+lem-normNCmpSelsPreservesEval :
+  ∀ (sels : List Selector) (nt : NTrm) (v : Val) →
+    evalNT (normNCmpSels nt sels) v ≡ evalNT nt (evalSels sels v)
+
+lem-normNCmpSelsPreservesEval sels NNil v = refl
+
+lem-normNCmpSelsPreservesEval sels (NCons nt1 nt2) v
+  rewrite lem-normNCmpSelsPreservesEval sels nt1 v
+        | lem-normNCmpSelsPreservesEval sels nt2 v = refl
+
+lem-normNCmpSelsPreservesEval sels (NSelCmp sels0) v
+  rewrite lem-evalT-sels2trm (sels ++ sels0) v
+        | lem-evalSelsAppend sels sels0 v
+        | lem-evalT-sels2trm sels0 (evalSels sels v)
+  = refl
 {-
+  =
+  begin
+    evalNT (normNCmpSels (NSelCmp sels0) sels) v
+      ≡⟨ refl ⟩
+    evalT (sels2trm (sels ++ sels0)) v
+      ≡⟨ lem-evalT-sels2trm (sels ++ sels0) v ⟩
+    evalSels (sels ++ sels0) v
+      ≡⟨ lem-evalSelsAppend sels sels0 v ⟩
+    evalSels sels0 (evalSels sels v)
+      ≡⟨ sym (lem-evalT-sels2trm sels0 (evalSels sels v)) ⟩
+    evalT (sels2trm sels0) (foldl (λ z z' → evalSel z' z) v sels)
+      ≡⟨ refl ⟩
+    evalNT (NSelCmp sels0) (evalSels sels v)
+  ∎
+-}
+
+lem-normNCmpSelsPreservesEval sels (NIfNil sels0 nt1 nt2) v
+  rewrite lem-evalT-sels2trm (sels ++ sels0) v
+        | lem-evalT-sels2trm sels0 (evalSels sels v)
+        | lem-evalSelsAppend sels sels0 v
+  = helper (evalSels sels0 (evalSels sels v))
+  where
+    helper : ∀ v0 →
+      evalT-IfNil v0
+        (ntrm2trm (normNCmpSels nt1 sels)) (ntrm2trm (normNCmpSels nt2 sels)) v
+      ≡
+      evalT-IfNil v0 (ntrm2trm nt1) (ntrm2trm nt2) (evalSels sels v)
+    helper VNil
+      rewrite lem-normNCmpSelsPreservesEval sels nt1 v = refl
+    helper (VCons v1 v2)
+      rewrite lem-normNCmpSelsPreservesEval sels nt2 v = refl
+    helper VBottom = refl
+
+lem-normNCmpSelsPreservesEval sels NBottom v = refl
+
+-- lem-normNCmpSels-app
+
 lem-normNCmpSels-app : ∀ (sels1 sels2 : List Selector) (nt : NTrm) →
   normNCmpSels nt (sels1 ++ sels2) ≡
   normNCmpSels (normNCmpSels nt sels2) sels1
-lem-normNCmpSels-app sels1 sels2 nt = ?
+lem-normNCmpSels-app sels1 sels2 NNil = refl
+lem-normNCmpSels-app sels1 sels2 (NCons nt1 nt2)
+  rewrite lem-normNCmpSels-app sels1 sels2 nt2
+        | lem-normNCmpSels-app sels1 sels2 nt1
+  = refl
+{-
+  =
+  begin
+    NCons (normNCmpSels nt1 (sels1 ++ sels2))
+          (normNCmpSels nt2 (sels1 ++ sels2))
+    ≡⟨ cong (NCons (normNCmpSels nt1 (sels1 ++ sels2)))
+            (lem-normNCmpSels-app sels1 sels2 nt2) ⟩
+    NCons (normNCmpSels nt1 (sels1 ++ sels2))
+          (normNCmpSels (normNCmpSels nt2 sels2) sels1)
+    ≡⟨ cong (λ z → NCons z (normNCmpSels (normNCmpSels nt2 sels2) sels1))
+            (lem-normNCmpSels-app sels1 sels2 nt1) ⟩
+    NCons (normNCmpSels (normNCmpSels nt1 sels2) sels1)
+           (normNCmpSels (normNCmpSels nt2 sels2) sels1)
+  ∎
 -}
+
+lem-normNCmpSels-app sels1 sels2 (NSelCmp sels)
+  rewrite ++-assoc sels1 sels2 sels
+  =  refl
+
+lem-normNCmpSels-app sels1 sels2 (NIfNil sels nt1 nt2)
+  rewrite ++-assoc sels1 sels2 sels
+        | lem-normNCmpSels-app sels1 sels2 nt1
+        | lem-normNCmpSels-app sels1 sels2 nt2
+  = refl
+
+lem-normNCmpSels-app sels1 sels2 NBottom = refl
