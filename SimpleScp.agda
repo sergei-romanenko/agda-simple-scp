@@ -424,3 +424,61 @@ lem-normNCmpSels-app sels1 sels2 (NIfNil sels nt1 nt2)
   = refl
 
 lem-normNCmpSels-app sels1 sels2 NBottom = refl
+
+-- normNIf
+
+normNIf : (nt0 nt1 nt2 : NTrm) → NTrm
+
+normNIf NNil nt1 nt2 =
+  nt1
+normNIf (NCons nt' nt'') nt1 nt2 =
+  nt2
+normNIf (NSelCmp sels) nt1 nt2 =
+  NIfNil sels nt1 nt2
+normNIf (NIfNil sels nt' nt'') nt1 nt2 =
+  NIfNil sels (normNIf nt' nt1 nt2) (normNIf nt'' nt1 nt2)
+normNIf NBottom nt1 nt2 =
+  NBottom
+
+-- ifV
+
+ifV_then_else_ : (v0 v1 v2 : Val) → Val
+
+ifV VNil then v1 else v2 = v1
+ifV VCons v' v'' then v1 else v2 = v2
+ifV VBottom then v1 else v2 = VBottom
+
+-- normNIfPreservesEvalT
+
+lem-normNIfPreservesEvalT : ∀ (nt1 nt2 nt3 : NTrm) (v : Val) →
+  evalT (ntrm2trm (normNIf nt1 nt2 nt3)) v ≡
+    ifV evalT (ntrm2trm nt1) v
+    then evalT (ntrm2trm nt2) v
+    else evalT (ntrm2trm nt3) v
+
+lem-normNIfPreservesEvalT NNil nt2 nt3 v = refl
+lem-normNIfPreservesEvalT (NCons nt' nt'') nt2 nt3 v = refl
+lem-normNIfPreservesEvalT (NSelCmp sels) nt2 nt3 v
+  with evalT (sels2trm sels) v
+... | VNil = refl
+... | VCons v1 v2 = refl
+... | VBottom = refl
+lem-normNIfPreservesEvalT (NIfNil sels nt' nt'') nt2 nt3 v
+  with evalT (sels2trm sels) v
+... | VNil        rewrite lem-normNIfPreservesEvalT nt'  nt2 nt3 v = refl
+... | VCons v1 v2 rewrite lem-normNIfPreservesEvalT nt'' nt2 nt3 v = refl
+... | VBottom = refl
+lem-normNIfPreservesEvalT NBottom nt2 nt3 v = refl
+
+-- normNIfPreservesEval
+
+normNIfPreservesEval : ∀ (nt1 nt2 nt3 : NTrm) (v : Val) →
+  evalNT (normNIf nt1 nt2 nt3) v ≡
+    ifV evalNT nt1 v
+    then evalNT nt2 v
+    else evalNT nt3 v
+
+normNIfPreservesEval nt1 nt2 nt3 v =
+  lem-normNIfPreservesEvalT nt1 nt2 nt3 v
+
+--
