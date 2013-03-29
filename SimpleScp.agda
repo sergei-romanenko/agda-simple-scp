@@ -770,5 +770,64 @@ evalNT∘normNCmp (NIfNil sels nt' nt'') nt2 v =
 evalNT∘normNCmp NBottom nt2 v =
   refl
 
+-- normConv
+
+normConv : (t : Trm) → NTrm
+
+normConv Nil = NNil
+normConv (Cons t1 t2) = NCons (normConv t1) (normConv t2)
+normConv (Sel sel) = NSelCmp [ sel ]
+normConv Id = NSelCmp []
+normConv (Cmp t1 t2) = normNCmp (normConv t1) (normConv t2)
+normConv (IfNil t0 t1 t2) = normNIf (normConv t0) (normConv t1) (normConv t2)
+normConv Bottom = NBottom
+
+--
+-- The main theorem establishing the correctness of normalization.
+--
+
+-- evalNT∘normConv
+
+evalNT∘normConv : (t : Trm) (v : Val) →
+  evalNT (normConv t) v ≡ evalT t v
+
+evalNT∘normConv Nil v =
+  refl
+evalNT∘normConv (Cons t1 t2) v
+  rewrite evalNT∘normConv t1 v | evalNT∘normConv t2 v
+  = refl
+evalNT∘normConv (Sel sel) v =
+  refl
+evalNT∘normConv Id v =
+  refl
+evalNT∘normConv (Cmp t1 t2) v = begin
+  evalNT (normConv (Cmp t1 t2)) v
+    ≡⟨ refl ⟩
+  evalNT (normNCmp (normConv t1) (normConv t2)) v
+    ≡⟨ evalNT∘normNCmp (normConv t1) (normConv t2) v ⟩
+  evalNT (normConv t1) (evalNT (normConv t2) v)
+    ≡⟨ cong (evalNT (normConv t1)) (evalNT∘normConv t2 v) ⟩
+  evalNT (normConv t1) (evalT t2 v)
+    ≡⟨ evalNT∘normConv t1 (evalT t2 v) ⟩
+  evalT t1 (evalT t2 v)
+    ≡⟨ refl ⟩
+  evalT (Cmp t1 t2) v
+  ∎
+evalNT∘normConv (IfNil t0 t1 t2) v = begin
+  evalNT (normConv (IfNil t0 t1 t2)) v
+    ≡⟨ refl ⟩
+  evalNT (normNIf (normConv t0) (normConv t1) (normConv t2)) v
+    ≡⟨ evalNT∘normNIf (normConv t0) (normConv t1) (normConv t2) v ⟩
+  ifNil (evalNT (normConv t0) v)
+        (evalNT (normConv t1) v) (evalNT (normConv t2) v)
+    ≡⟨ ifNil-cong (evalNT∘normConv t0 v)
+                  (evalNT∘normConv t1 v) (evalNT∘normConv t2 v) ⟩
+  ifNil (evalT t0 v) (evalT t1 v) (evalT t2 v)
+    ≡⟨ refl ⟩
+  evalT (IfNil t0 t1 t2) v
+  ∎
+evalNT∘normConv Bottom v =
+  refl
+
 
 --
