@@ -69,6 +69,6 @@ foldl⇒foldr-reverse f n (x ∷ xs) =
     foldr (flip f) ((flip f) x n) (reverse xs)
       ≡⟨ sym (foldr-∷ʳ (flip f) n (reverse xs) x) ⟩
     foldr (flip f) n (reverse xs ++ [ x ])
-      ≡⟨ cong (λ e → foldr (flip f) n e) (sym (unfold-reverse x xs)) ⟩
+      ≡⟨ cong (foldr (flip f) n) (sym (unfold-reverse x xs)) ⟩
     foldr (flip f) n (reverse (x ∷ xs))
   ∎
