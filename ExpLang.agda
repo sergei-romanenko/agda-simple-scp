@@ -922,6 +922,17 @@ commonPrefix eq (x ∷ xs) (y ∷ ys) with eq x y
 ... | yes _ with commonPrefix eq xs ys
 ... | zs , xs′ , ys′  = y ∷ zs , xs′ , ys′
 
+commonPrefix? :
+  ∀ {ℓ} {A : Set ℓ} (eq : (u v : A) → Dec (u ≡ v)) (xs ys : List A) →
+        ∃ λ ws → ∃₂ λ us vs → xs ≡ ws ++ us × ys ≡ ws ++ vs
+commonPrefix? eq [] ys = [] , [] , ys , refl , refl
+commonPrefix? eq xs [] = [] , xs , [] , refl , refl
+commonPrefix? eq (x ∷ xs) (y ∷ ys) with eq x y
+... | no _ = [] , x ∷ xs , y ∷ ys , refl , refl
+... | yes _ with commonPrefix? eq xs ys
+... | ws , us , vs , xs≡ws++us ,  ys≡ws++vs =
+  [] , x ∷ xs , y ∷ ys , refl , refl
+
 -- commonPrefix∘++
 
 commonPrefix∘++ :
@@ -943,34 +954,54 @@ commonPrefix-[] eq (x ∷ xs) = refl
 
 -- normSelsNCmp∘ReplaceAt
 
-normSelsNCmp∘ReplaceAt :
-  ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm)
-    {zs , xs , ys : List Selector} →
-    commonPrefix _≟Sel_ sels1 sels2 ≡ zs ,′ xs ,′ ys →
-    normSelsNCmp (replaceAt sels2 nt nt′) xs
-       ≡ normSelsNCmp (replaceAt ys (normSelsNCmp nt zs) nt′) xs
-normSelsNCmp∘ReplaceAt [] sels2 nt nt′ refl = refl
-normSelsNCmp∘ReplaceAt sels1 [] nt nt′ refl
-  rewrite commonPrefix-[] _≟Sel_ sels1 = refl
-normSelsNCmp∘ReplaceAt (x1 ∷ sels1) (x2 ∷ sels2) nt nt′ refl with x1 ≟Sel x2
-... | yes x1≡x2 rewrite x1≡x2 = {!!}
-... | no  x1≢x2 = refl
+normSelsNCmp∘ReplaceAt′ :
+  ∀ (ws us vs : List Selector) (nt nt′ : NTrm) →
+    normSelsNCmp (replaceAt (ws ++ vs) nt nt′) (ws ++ us)
+      ≡ normSelsNCmp (replaceAt vs (normSelsNCmp nt ws) nt′) us
 
-{-
+normSelsNCmp∘ReplaceAt′ [] us vs nt nt′ = refl
+normSelsNCmp∘ReplaceAt′ (HD ∷ ws) us vs nt nt′ =
+  normSelsNCmp∘ReplaceAt′ ws us vs (normSelNCmp nt HD) nt′
+normSelsNCmp∘ReplaceAt′ (TL ∷ ws) us vs nt nt′ =
+  normSelsNCmp∘ReplaceAt′ ws us vs (normSelNCmp nt TL) nt′
+
 normSelsNCmp∘ReplaceAt :
   ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
-    let cp = commonPrefix _≟Sel_ sels1 sels2
-        zs = proj₁ cp
-        xs = proj₁ (proj₂ cp)
-        ys = proj₂ (proj₂ cp)
-    in normSelsNCmp (replaceAt sels2 nt nt′) xs
-       ≡ normSelsNCmp (replaceAt ys (normSelsNCmp nt zs) nt′) xs
-normSelsNCmp∘ReplaceAt [] sels2 nt nt′ = refl
-normSelsNCmp∘ReplaceAt sels1 [] nt nt′ = {!!}
-normSelsNCmp∘ReplaceAt (x ∷ sels1) (y ∷ sels2) nt nt′ with x ≟Sel y
-... | yes x≡y = {!!}
-... | no  x≢y = {!!}
--}
+    let cp = commonPrefix? _≟Sel_ sels1 sels2
+        ws = proj₁ cp
+        us = proj₁ (proj₂ cp)
+        vs = proj₁ (proj₂ (proj₂ cp))
+    in normSelsNCmp (replaceAt sels2 nt nt′) sels1
+       ≡ normSelsNCmp (replaceAt vs (normSelsNCmp nt ws) nt′) us
 
+normSelsNCmp∘ReplaceAt sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 sels2
+... | ws , us , vs , sels1≡ws++us , sels2≡ws++vs
+  rewrite sels1≡ws++us | sels2≡ws++vs =
+  normSelsNCmp∘ReplaceAt′ ws us vs nt nt′
+
+-- replaceAt∘NSelCmp
+
+replaceAt∘NSelCmp : (sels1 sels2 : List Selector) (nt : NTrm) →
+  replaceAt sels1 (NSelCmp sels2) nt 
+    ≡ normSelsNCmp (replaceAt (sels2 ++ sels1) (NSelCmp []) nt) sels2
+
+replaceAt∘NSelCmp sels1 sels2 nt =
+  begin
+    replaceAt sels1 (NSelCmp sels2) nt
+      ≡⟨ refl ⟩
+    normSelsNCmp (replaceAt sels1 (NSelCmp sels2) nt) []
+      ≡⟨ cong (λ z → normSelsNCmp (replaceAt sels1 z nt) [])
+              (sym $ normSelsNCmp∘NSelCmp [] sels2) ⟩
+    normSelsNCmp (replaceAt sels1 (normSelsNCmp (NSelCmp []) sels2) nt) []
+      ≡⟨ sym $ normSelsNCmp∘ReplaceAt [] sels1
+                                      (normSelsNCmp (NSelCmp []) sels2)
+                                      nt ⟩
+    replaceAt sels1 (normSelsNCmp (NSelCmp []) sels2) nt
+      ≡⟨ sym $ normSelsNCmp∘ReplaceAt′ sels2 [] sels1 (NSelCmp []) nt ⟩
+    normSelsNCmp (replaceAt (sels2 ++ sels1) (NSelCmp []) nt) (sels2 ++ [])
+      ≡⟨ cong (normSelsNCmp (replaceAt (sels2 ++ sels1) (NSelCmp []) nt))
+              (++-[] sels2) ⟩
+    normSelsNCmp (replaceAt (sels2 ++ sels1) (NSelCmp []) nt) sels2
+  ∎
 
 --
