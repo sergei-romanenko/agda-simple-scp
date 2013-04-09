@@ -1,6 +1,7 @@
 module PosInfoProp where
 
 open import Data.List
+open import Data.Empty
 
 open import Relation.Binary.PropositionalEquality
   renaming([_] to [_]ⁱ)
@@ -269,6 +270,74 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   evalNT (setConsAt sels2) (evalSels v sels1)
   ∎
 
+-- evalNT∘setNilAt
+
+VBottom≢VNil : VBottom ≢ VNil
+VBottom≢VNil = λ ()
+
+VCons≢VNil : ∀ {v1 v2} → VCons v1 v2 ≢ VNil
+VCons≢VNil = λ ()
+
+evalNT∘setNilAt : (sels : List Selector) (v : Val) →
+  evalSels v sels ≡ VNil → evalNT (setNilAt sels) v ≡ v
+
+evalNT∘setNilAt [] VNil h = refl
+
+evalNT∘setNilAt (sel ∷ sels) VNil h
+  rewrite evalSels-VBottom sels
+  = ⊥-elim (VBottom≢VNil h)
+
+evalNT∘setNilAt [] (VCons v1 v2) h =
+  ⊥-elim (VCons≢VNil h)
+
+evalNT∘setNilAt (HD ∷ sels) (VCons v1 v2) h =
+  cong (flip VCons v2) helper
+  where
+  helper = begin
+    evalNT (replaceAt sels (NSelCmp [ HD ]) NNil) (VCons v1 v2)
+      ≡⟨ cong (flip evalNT (VCons v1 v2))
+              (replaceAt∘NSelCmp sels [ HD ] NNil) ⟩
+    evalNT (normSelsNCmp (replaceAt ([ HD ] ++ sels) (NSelCmp []) NNil) [ HD ])
+           (VCons v1 v2)
+      ≡⟨ refl ⟩
+    evalSels (evalNT (replaceAt ([ HD ] ++ sels) (NSelCmp []) NNil)
+                     (VCons v1 v2)) [ HD ]
+      ≡⟨ refl ⟩
+    evalSels (evalNT (setNilAt ([ HD ] ++ sels)) (VCons v1 v2)) [ HD ]
+      ≡⟨ setNilAtPreservesEval′′ (VCons v1 v2) [ HD ] sels ⟩
+    evalNT (setNilAt sels) (evalSels (VCons v1 v2) [ HD ])
+      ≡⟨ refl ⟩
+    evalNT (setNilAt sels) v1
+      ≡⟨ evalNT∘setNilAt sels v1 h ⟩
+    v1
+    ∎
+
+evalNT∘setNilAt (TL ∷ sels) (VCons v1 v2) h =
+  cong (VCons v1) helper
+  where
+  helper = begin
+    evalNT (replaceAt sels (NSelCmp [ TL ]) NNil) (VCons v1 v2)
+      ≡⟨ cong (flip evalNT (VCons v1 v2))
+              (replaceAt∘NSelCmp sels [ TL ] NNil) ⟩
+    evalNT (normSelsNCmp (replaceAt ([ TL ] ++ sels) (NSelCmp []) NNil) [ TL ])
+           (VCons v1 v2)
+      ≡⟨ refl ⟩
+    evalSels (evalNT (replaceAt ([ TL ] ++ sels) (NSelCmp []) NNil)
+                     (VCons v1 v2)) [ TL ]
+      ≡⟨ refl ⟩
+    evalSels (evalNT (setNilAt ([ TL ] ++ sels)) (VCons v1 v2)) [ TL ]
+      ≡⟨ setNilAtPreservesEval′′ (VCons v1 v2) [ TL ] sels ⟩
+    evalNT (setNilAt sels) (evalSels (VCons v1 v2) [ TL ])
+      ≡⟨ refl ⟩
+    evalNT (setNilAt sels) v2
+      ≡⟨ evalNT∘setNilAt sels v2 h ⟩
+    v2
+    ∎
+
+evalNT∘setNilAt sels VBottom h
+  rewrite evalSels-VBottom sels
+  = ⊥-elim (VBottom≢VNil h)
+
 {-
 evalNT∘normNCmpSels :
   (nt : NTrm) (sels : List Selector) (v : Val) →
@@ -293,6 +362,10 @@ replaceAt∘++ : ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
   replaceAt (sels1 ++ sels2) nt nt′
   ≡
   replaceAt sels1 nt (replaceAt sels2 (normSelsNCmp nt sels1) nt′)
+
+replaceAt∘NSelCmp : (sels1 sels2 : List Selector) (nt : NTrm) →
+  replaceAt sels1 (NSelCmp sels2) nt 
+    ≡ normSelsNCmp (replaceAt (sels2 ++ sels1) (NSelCmp []) nt) sels2
 
 setNilAtPreservesEval′ : (sels1 sels2 : List Selector) →
   replaceAt sels1 (NSelCmp sels2) NNil
