@@ -277,10 +277,9 @@ evalNT∘normSelNCmp (NIfNil sels nt1 nt2) sel v =
     ifNil (evalT (sels2trm sels) v)
           (evalNT (normSelNCmp nt1 sel) v)
           (evalNT (normSelNCmp nt2 sel) v)
-      ≡⟨ ifNil-cong
-           (begin evalT (sels2trm sels) v ∎)
-           (evalNT∘normSelNCmp nt1 sel v)
-           (evalNT∘normSelNCmp nt2 sel v) ⟩
+      ≡⟨ cong₂ (ifNil (evalT (sels2trm sels) v))
+               (evalNT∘normSelNCmp nt1 sel v)
+               (evalNT∘normSelNCmp nt2 sel v) ⟩
     ifNil (evalT (sels2trm sels) v)
           (evalSel (evalNT nt1 v) sel)
           (evalSel (evalNT nt2 v) sel)
@@ -395,9 +394,9 @@ evalNT∘normNCmpSels (NIfNil sels0 nt1 nt2) sels v
   rewrite evalT∘sels2trm (sels ++ sels0) v
         | evalT∘sels2trm sels0 (evalSels v sels)
         | evalSels∘++ v sels sels0
-  = ifNil-cong (begin evalSels (evalSels v sels) sels0 ∎)
-               (evalNT∘normNCmpSels nt1 sels v)
-               (evalNT∘normNCmpSels nt2 sels v)
+  = cong₂ (ifNil (evalSels (evalSels v sels) sels0))
+          (evalNT∘normNCmpSels nt1 sels v)
+          (evalNT∘normNCmpSels nt2 sels v)
 
 evalNT∘normNCmpSels NBottom sels v = refl
 
@@ -659,11 +658,9 @@ evalNT∘normNCmp (NIfNil sels nt' nt'') nt2 v =
         (ifNil (evalT (sels2trm sels) (evalNT nt3 v))
                (evalNT nt' (evalNT nt3 v))
                (evalNT nt'' (evalNT nt3 v)))
-        ≡⟨ ifNil-cong
-             (begin evalSels v sels' ∎)
-             (ifNil-cong (evalT∘sels2trm sels (evalNT nt1 v)) refl refl)
-             (ifNil-cong (evalT∘sels2trm sels (evalNT nt3 v)) refl refl)
-             ⟩
+        ≡⟨ cong₂ (ifNil (evalSels v sels'))
+                 (ifNil-cong (evalT∘sels2trm sels (evalNT nt1 v)) refl refl)
+                 (ifNil-cong (evalT∘sels2trm sels (evalNT nt3 v)) refl refl) ⟩
       ifNil (evalSels v sels')
         (ifNil (evalSels (evalNT nt1 v) sels)
                (evalNT nt' (evalNT nt1 v))

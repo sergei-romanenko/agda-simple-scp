@@ -4,6 +4,7 @@ open import Data.List
 open import Relation.Binary.PropositionalEquality
 
 open import ExpLang
+open import PosInfoProp
 
 infixr 6 _$$_
 infixr 5 _#_
@@ -36,5 +37,9 @@ module replaceAt₂ where
          ≡ IfNil Hd (Tl $$ Hd $$ Tl # Hd $$ Hd $$ Tl) (Tl $$ Tl)
   prop = refl
 
+pos-info-prop₁ :
+  ntrm2trm (norm (IfNil Hd (Nil # Nil) (IfNil Hd Nil Tl)))
+  ≡ IfNil Hd (Nil # Nil) Tl
+pos-info-prop₁ = refl
 
 --
