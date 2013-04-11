@@ -198,7 +198,7 @@ evalSels∘++ v (sel ∷ xs) sels2 =
   evalSels∘++ (evalSel v sel) xs sels2
 
 --
--- Normalization  of simple expressions
+-- Normalization of simple expressions
 --
 
 -- NTrm
@@ -478,48 +478,25 @@ evalNT∘normNIf NBottom nt2 nt3 v = refl
 
 normNCmp : NTrm → NTrm → NTrm
 
-{-
-normNCmp nt1 nt2 with nt1
-... | NNil = NNil
-... | NCons nt' nt'' =
-  NCons (normNCmp nt' nt2) (normNCmp nt'' nt2)
-... | NSelCmp sels =
-  normSelsNCmp sels nt2
-... | NBottom = NBottom
-... | NIfNil sels nt' nt'' with nt2
-... | NSelCmp sels2 =
-        NIfNil (sels2 ++ sels)
-               (normNCmpSels nt' sels2) (normNCmpSels nt'' sels2)
-... | NIfNil sels2 nt2' nt2'' =
-        NIfNil sels2 (normNCmp nt1 nt2') (normNCmp nt1 nt2'')
-... | _ =
-        normNIf (normSelsNCmp sels nt2) (normNCmp nt' nt2) (normNCmp nt'' nt2)
--}
-
 normNCmp NNil nt2 =
   NNil
+
 normNCmp (NCons nt' nt'') nt2 =
   NCons (normNCmp nt' nt2) (normNCmp nt'' nt2)
+
 normNCmp (NSelCmp sels) nt2 =
   normSelsNCmp nt2 sels
+
 normNCmp (NIfNil sels nt' nt'') (NSelCmp sels2) =
   NIfNil (sels2 ++ sels) (normNCmpSels nt' sels2) (normNCmpSels nt'' sels2)
+
 normNCmp (NIfNil sels nt' nt'') (NIfNil sels2 nt2' nt2'') =
   NIfNil sels2 (normNCmp (NIfNil sels nt' nt'') nt2')
                (normNCmp (NIfNil sels nt' nt'') nt2'')
-{-
-normNCmp (NIfNil sels nt' nt'') NNil =
-  normNIf (normSelsNCmp NNil sels) (normNCmp nt' NNil) (normNCmp nt'' NNil)
-normNCmp (NIfNil sels nt' nt'') (NCons nt2' nt2'') =
-  normNIf (normSelsNCmp (NCons nt2' nt2'') sels)
-    (normNCmp nt' (NCons nt2' nt2''))
-    (normNCmp nt'' (NCons nt2' nt2''))
-normNCmp (NIfNil sels nt' nt'') NBottom =
-  normNIf (normSelsNCmp NBottom sels)
-          (normNCmp nt' NBottom) (normNCmp nt'' NBottom)
--}
+
 normNCmp (NIfNil sels nt' nt'') nt2 =
   normNIf (normSelsNCmp nt2 sels) (normNCmp nt' nt2) (normNCmp nt'' nt2)
+
 normNCmp NBottom nt2 =
   NBottom
 
@@ -548,27 +525,20 @@ evalNT∘normNCmp (NCons nt' nt'') nt2 v
         | evalNT∘normNCmp nt'' nt2 v
   = refl
 
-evalNT∘normNCmp (NSelCmp sels) nt2 v
-  rewrite evalNT∘normSelsNCmp nt2 sels v
-        | sym (evalT∘sels2trm sels (evalT (ntrm2trm nt2) v))
-  = refl
-{-
-  =
+evalNT∘normNCmp (NSelCmp sels) nt2 v =
   begin
     evalNT (normNCmp (NSelCmp sels) nt2) v
       ≡⟨ refl ⟩
-    evalT (ntrm2trm (normSelsNCmp sels nt2)) v
-      ≡⟨ evalNT∘normSelsNCmp sels nt2 v ⟩
-    evalSels sels (evalT (ntrm2trm nt2) v)
+    evalNT (normSelsNCmp nt2 sels) v
+      ≡⟨ evalNT∘normSelsNCmp nt2 sels v ⟩
+    evalSels (evalT (ntrm2trm nt2) v) sels
       ≡⟨ sym (evalT∘sels2trm sels (evalT (ntrm2trm nt2) v)) ⟩
     evalT (sels2trm sels) (evalT (ntrm2trm nt2) v)
       ≡⟨ refl ⟩
     evalNT (NSelCmp sels) (evalNT nt2 v)
   ∎
--}
 
 evalNT∘normNCmp (NIfNil sels nt' nt'') nt2 v =
-
   begin
     evalNT (normNCmp (NIfNil sels nt' nt'') nt2) v
       ≡⟨ helper nt2 ⟩
