@@ -42,7 +42,7 @@ data Stmt : Set where
 -- its evaluator as a total Agda function.
 -- Thus we specify its semantics as a relation.
 
--- Big-step evaluation relation
+-- Big-step evaluation relation for SWhile programs
 
 data _⊨_⇓_ : Stmt → Val → Val → Set where
   ⇓-Assign :
@@ -80,15 +80,108 @@ record KNFProg : Set where
 
 open KNFProg public
 
+
+-- Big-step evaluation relation for KNF programs
+
+infix 4 While_assign_⊨_⇓_
+
+data While_assign_⊨_⇓_ : Trm → Trm → Val → Val → Set where
+  ⇓-WhileNil :
+    ∀ {cond e v} →
+    evalT cond v ≡ VNil →
+    While cond assign e ⊨ v ⇓ v    
+  ⇓-WhileBottom :
+    ∀ {cond e v} →
+    evalT cond v ≡ VBottom →
+    While cond assign e ⊨ v ⇓ VBottom
+  ⇓-WhileCons :
+    ∀ {cond e v v′ vh vt} →
+    evalT cond v ≡ VCons vh vt →
+    While cond assign e ⊨ evalT e v ⇓ v′ →
+    While cond assign e ⊨ v ⇓ v′
+
+infix 4 _⊨KNF_⇓_
+
+data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
+  ⇓-eval :
+    ∀ {init cond body final v v′} →
+      While cond assign body ⊨ (evalT init v) ⇓ v′ →
+      KNF init cond body final ⊨KNF v ⇓ evalT final v′
+
+-- KNFtoProg
+
 KNFtoProg : KNFProg → Stmt
 KNFtoProg knf =
   Seq (Assign (initExp knf))
       (Seq (While (condExp knf) (Assign (bodyExp knf)))
            (Assign (finalExp knf)))
 
+-----------------------------------------------------
+-- _⊨KNF_⇓_ is correct with respect to _⊨_⇓_ .
+-----------------------------------------------------
+
+-- ⊨While⇒⊨
+
+⊨While⇒⊨ :
+  ∀ {cond e v v′} →
+  While cond assign e ⊨ v ⇓ v′ →
+  While cond (Assign e) ⊨ v ⇓ v′
+
+-- ⊨While⇒⊨
+
+⊨While⇒⊨ (⇓-WhileNil ≡VNil) =
+  ⇓-WhileNil ≡VNil
+⊨While⇒⊨ (⇓-WhileBottom ≡VBottom) =
+  ⇓-WhileBottom ≡VBottom
+⊨While⇒⊨ (⇓-WhileCons ≡VCons h) =
+  ⇓-WhileCons ≡VCons ⇓-Assign (⊨While⇒⊨ h)
+
+-- ⊨KNF⇒⊨
+
+⊨KNF⇒⊨ :
+  ∀ {knf v v′} →
+  knf ⊨KNF v ⇓ v′ → KNFtoProg knf ⊨ v ⇓ v′
+
+⊨KNF⇒⊨ (⇓-eval h) =
+  ⇓-Seq ⇓-Assign (⇓-Seq (⊨While⇒⊨ h) ⇓-Assign)
+
+-- ⊨⇒⊨While
+
+⊨⇒⊨While :
+  ∀ {cond e v v′} →
+  While cond (Assign e) ⊨ v ⇓ v′ →
+  While cond assign e ⊨ v ⇓ v′
+
+⊨⇒⊨While (⇓-WhileNil ≡VNil) =
+  ⇓-WhileNil ≡VNil
+⊨⇒⊨While (⇓-WhileBottom ≡VBottom) =
+  ⇓-WhileBottom ≡VBottom
+⊨⇒⊨While (⇓-WhileCons ≡VCons ⇓-Assign h) =
+  ⇓-WhileCons ≡VCons (⊨⇒⊨While h)
+
+-- ⊨⇒⊨KNF
+
+⊨⇒⊨KNF :
+  ∀ {knf v v′} →
+  KNFtoProg knf ⊨ v ⇓ v′ → knf ⊨KNF v ⇓ v′
+
+⊨⇒⊨KNF (⇓-Seq ⇓-Assign (⇓-Seq h ⇓-Assign)) =
+  ⇓-eval (⊨⇒⊨While h)
+
+-- ⊨KNF⇔⊨
+
+⊨KNF⇔⊨ :
+  ∀ {knf v v′} →
+  knf ⊨KNF v ⇓ v′ ⇔ KNFtoProg knf ⊨ v ⇓ v′
+
+⊨KNF⇔⊨ =
+  equivalence ⊨KNF⇒⊨ ⊨⇒⊨KNF
+
+-----------------------------------------------
 -- Many optimizing transformations are valid
 -- only if the condition of the loop is strict,
 -- according to the following definition.
+-----------------------------------------------
 
 -- strictTrm
 
@@ -328,11 +421,11 @@ evalS⇒-⇓ (suc i) (While t s) v .VBottom refl | VBottom | [ f ]ⁱ =
 -- ⇓-⇔evalS
 
 ⇓-⇔evalS :
-  ∀ s v v′ →
+  ∀ {s v v′} →
     s ⊨ v ⇓ v′ ⇔
     (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
 
-⇓-⇔evalS s v v′ =
+⇓-⇔evalS {s} {v} {v′} =
   equivalence (⇓-⇒evalS s v v′)
               (λ {(i , h) → evalS⇒-⇓ i s v v′ h})
 
@@ -373,130 +466,116 @@ evalKNF i (KNF initExp condExp bodyExp finalExp) v =
 evalKNF′ finalExp (just v′) = just (evalT finalExp v′)
 evalKNF′ finalExp nothing = nothing
 
+
 ---------------------------------------------------------
 -- The executable KNF interpreter is correct with respect
--- to the relational semantics.
+-- to the relational KNF semantics.
 ---------------------------------------------------------
 
--- ⇓-⇒evalKNFCore
+-- ⊨While⇒evalKNFCore
 
-⇓-⇒evalKNFCore :
-  ∀ cond e v v′ →
-    While cond (Assign e) ⊨ v ⇓ v′ →
+⊨While⇒evalKNFCore :
+  ∀ {cond e v v′} →
+    While cond assign e ⊨ v ⇓ v′ →
     (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
 
-⇓-⇒evalKNFCore cond e .v v (⇓-WhileNil ≡VNil) =
+⊨While⇒evalKNFCore (⇓-WhileNil {cond} {e} {v} ≡VNil) =
   suc zero , (begin
-    evalKNFCore′ 0 cond e v (evalT cond v)
-      ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VNil ⟩
-    just v
+  evalKNFCore′ 0 cond e v (evalT cond v)
+    ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VNil ⟩
+  evalKNFCore′ 0 cond e v VNil
+    ≡⟨ refl ⟩
+  just v
   ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalKNFCore cond e v .VBottom
-    (⇓-WhileBottom ≡VBottom) =
-  suc zero , (begin
-    evalKNFCore′ 0 cond e v (evalT cond v)
-      ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VBottom ⟩
-    just VBottom
+⊨While⇒evalKNFCore (⇓-WhileBottom {cond} {e} {v} ≡VBottom) =
+  (suc zero) , (begin
+  evalKNFCore′ 0 cond e v (evalT cond v)
+    ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VBottom ⟩
+  evalKNFCore′ 0 cond e v VBottom
+    ≡⟨ refl ⟩
+  just VBottom
   ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalKNFCore cond e v v′′
-    (⇓-WhileCons ≡VCons ⇓-Assign h₂)
-  with ⇓-⇒evalKNFCore cond e (evalT e v) v′′ h₂
-... | i , g = (suc i) , (begin
+⊨While⇒evalKNFCore (⇓-WhileCons {cond} {e} {v} {v′′} {vh} {vt} ≡VCons h)
+  with ⊨While⇒evalKNFCore h
+... | i , g = suc i , (begin
   evalKNFCore′ i cond e v (evalT cond v)
     ≡⟨ cong (evalKNFCore′ i cond e v) ≡VCons ⟩
-  evalKNFCore i cond e (evalT e v)
+  evalKNFCore′ i cond e v (VCons vt vt)
     ≡⟨ g ⟩
   just v′′
   ∎)
   where open ≡-Reasoning
 
--- evalKNFCore⇒-⇓
+-- ⊨KNF⇒evalKNF
 
-evalKNFCore⇒-⇓ :
-  ∀ i cond e v v′ →
-    evalKNFCore i cond e v ≡ just v′ →
-    While cond (Assign e) ⊨ v ⇓ v′
-
-evalKNFCore⇒-⇓ zero cond e v v′ ()
-
-evalKNFCore⇒-⇓ (suc i) cond e v v′ h
-  with evalT cond v | inspect (evalT cond) v
-
-evalKNFCore⇒-⇓ (suc i) cond e .v′ v′ refl | VNil | [ f ]ⁱ =
-  ⇓-WhileNil f
-
-evalKNFCore⇒-⇓ (suc i) cond e v v′ h | VCons v1 v2 | [ f ]ⁱ
-  = ⇓-WhileCons f ⇓-Assign
-                  (evalKNFCore⇒-⇓ i cond e (evalT e v) v′ h)
-
-evalKNFCore⇒-⇓ (suc i) cond e v .VBottom refl | VBottom | [ f ]ⁱ =
-  ⇓-WhileBottom f
-
--- ⇓-⇔evalKNFCore
-
-⇓-⇔evalKNFCore :
-  ∀ cond e v v′ →
-    While cond (Assign e) ⊨ v ⇓ v′ ⇔
-    (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
-
-⇓-⇔evalKNFCore cond e v v′ =
-  equivalence (⇓-⇒evalKNFCore cond e v v′)
-              (λ {(i , h) → evalKNFCore⇒-⇓ i cond e v v′ h})
-
--- ⇓-⇒evalKNF
-
-⇓-⇒evalKNF :
-  ∀ knf v v′ →
-    KNFtoProg knf ⊨ v ⇓ v′ →
+⊨KNF⇒evalKNF :
+  ∀ {knf v v′} →
+    knf ⊨KNF v ⇓ v′ →
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
 
-⇓-⇒evalKNF
-  (KNF initExp condExp bodyExp finalExp) v .(evalT finalExp v′)
-  (⇓-Seq ⇓-Assign (⇓-Seq {v′ = v′} hw ⇓-Assign))
-  with ⇓-⇒evalKNFCore condExp bodyExp (evalT initExp v) v′ hw
-... | i , ≡v′ = i , (begin
-  evalKNF′ finalExp (evalKNFCore i condExp bodyExp (evalT initExp v))
-    ≡⟨ cong (evalKNF′ finalExp) ≡v′ ⟩
-  just (evalT finalExp v′)
+⊨KNF⇒evalKNF (⇓-eval {init} {cond} {body} {final} {v} {v′} h)
+  with ⊨While⇒evalKNFCore h
+... | i , g = i , (begin
+  evalKNF′ final (evalKNFCore i cond body (evalT init v))
+    ≡⟨ cong (evalKNF′ final) g ⟩
+  evalKNF′ final (just v′)
+    ≡⟨ refl ⟩
+  just (evalT final v′)
   ∎)
   where open ≡-Reasoning
 
--- evalKNF⇒-⇓
+-- evalKNFCore⇒⊨While
 
-evalKNF⇒-⇓ :
-  ∀ i knf v v′ →
+evalKNFCore⇒⊨While :
+  ∀ i {cond e v v′} →
+    evalKNFCore i cond e v ≡ just v′ →
+    While cond assign e ⊨ v ⇓ v′
+
+evalKNFCore⇒⊨While zero ()
+
+evalKNFCore⇒⊨While (suc i) {cond} {e} {v} {v′} h
+  with evalT cond v | inspect (evalT cond) v
+
+evalKNFCore⇒⊨While (suc i) refl | VNil | [ ≡VNil ]ⁱ =
+  ⇓-WhileNil ≡VNil
+
+evalKNFCore⇒⊨While (suc i) h | VCons v1 v2  | [ ≡VCons ]ⁱ =
+  ⇓-WhileCons ≡VCons (evalKNFCore⇒⊨While i h)
+
+evalKNFCore⇒⊨While (suc i) refl | VBottom  | [ ≡VBottom ]ⁱ =
+  ⇓-WhileBottom ≡VBottom
+
+-- evalKNF⇒⊨KNF
+
+evalKNF⇒⊨KNF :
+  ∀ i {knf v v′} →
     evalKNF i knf v ≡ just v′ →
-    KNFtoProg knf ⊨ v ⇓ v′
+    knf ⊨KNF v ⇓ v′
 
-evalKNF⇒-⇓ i
-  (KNF initExp condExp bodyExp finalExp) v v′′ h
-  with evalKNFCore i condExp bodyExp (evalT initExp v)
-     | inspect (evalKNFCore i condExp bodyExp) (evalT initExp v)
+evalKNF⇒⊨KNF i {KNF init cond body final} {v} {v′} h
+  with evalKNFCore i cond body (evalT init v)
+     | inspect (evalKNFCore i cond body) (evalT init v)
 
-evalKNF⇒-⇓ i
-  (KNF initExp condExp bodyExp finalExp) v .(evalT finalExp v′) refl
-  | just v′ | [ ≡v′ ]ⁱ =
-  ⇓-Seq ⇓-Assign
-        (⇓-Seq (evalKNFCore⇒-⇓ i condExp bodyExp
-               (evalT initExp v) v′ ≡v′) ⇓-Assign)
+evalKNF⇒⊨KNF i {KNF init cond body final} refl | just v′ | [ ≡v′ ]ⁱ =
+  ⇓-eval (evalKNFCore⇒⊨While i ≡v′)
 
-evalKNF⇒-⇓ i (KNF initExp condExp bodyExp finalExp) v v′′ ()
-  | nothing | [ ≡v′ ]ⁱ
+evalKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
 
--- ⇓-⇔evalKNF
+-- ⊨KNF⇔evalKNF
 
-⇓-⇔evalKNF :
-  ∀ knf v v′ →
-    KNFtoProg knf ⊨ v ⇓ v′ ⇔
+⊨KNF⇔evalKNF :
+  ∀ {knf v v′} →
+    knf ⊨KNF v ⇓ v′ ⇔
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
 
-⇓-⇔evalKNF knf v v′ =
-  equivalence (⇓-⇒evalKNF knf v v′)
-              (λ {(i , h) → evalKNF⇒-⇓ i knf v v′ h})
+⊨KNF⇔evalKNF =
+  equivalence ⊨KNF⇒evalKNF
+              (λ {(i , h) → evalKNF⇒⊨KNF i h})
+
 
 ---------------------------------------------------------
 -- The executable KNF interpreter is correct with respect
@@ -512,11 +591,14 @@ evalKNF⇔evalS :
 
 evalKNF⇔evalS knf v v′ =
   (∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′))
-    ∼⟨ sym $ ⇓-⇔evalKNF knf v v′ ⟩
+    ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
+  knf ⊨KNF v ⇓ v′
+    ∼⟨ ⊨KNF⇔⊨ ⟩
   KNFtoProg knf ⊨ v ⇓ v′
-    ∼⟨ ⇓-⇔evalS (KNFtoProg knf) v v′ ⟩
+    ∼⟨ ⇓-⇔evalS ⟩
   (∃ (λ (j : ℕ) → evalS j (KNFtoProg knf) v ≡ just v′))
   ∎
   where open Related.EquationalReasoning
+
 
 --
