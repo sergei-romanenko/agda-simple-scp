@@ -5,7 +5,7 @@ open import Data.Maybe
 open import Relation.Binary.PropositionalEquality
 
 open import ExpLang
-open import PosInfoProp
+open import PositiveInfo
 open import ImpLang
 
 infixr 6 _$$_
@@ -45,7 +45,7 @@ pos-info-prop₁ :
 pos-info-prop₁ = refl
 
 revList-knf : KNFProg
-revList-knf = NFProg (Id # Nil) Hd (Tl $$ Hd # Hd $$ Hd # Tl) Tl
+revList-knf = KNF (Id # Nil) Hd (Tl $$ Hd # Hd $$ Hd # Tl) Tl
 
 revList-prog : KNFtoProg revList-knf ≡
   Seq (Assign (Cons Id Nil))

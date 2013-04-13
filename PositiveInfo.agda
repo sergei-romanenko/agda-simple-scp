@@ -1,4 +1,4 @@
-module PosInfoProp where
+module PositiveInfo where
 
 open import Data.List
 open import Data.Empty
@@ -276,7 +276,7 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   evalNT (setConsAt sels2) (evalSels v sels1)
   ∎
 
--- evalNT∘setNilAt
+-- Auxiliaries
 
 VBottom≢VNil : VBottom ≢ VNil
 VBottom≢VNil = λ ()
@@ -286,6 +286,8 @@ VCons≢VNil = λ ()
 
 VCons≢VBottom : ∀ {v1 v2} → VCons v1 v2 ≢ VBottom
 VCons≢VBottom = λ ()
+
+-- evalNT∘setNilAt
 
 evalNT∘setNilAt : (sels : List Selector) (v : Val) →
   evalSels v sels ≡ VNil → evalNT (setNilAt sels) v ≡ v

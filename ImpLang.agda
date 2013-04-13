@@ -28,7 +28,7 @@ open import Algebra.Structures
 
 open import Util
 open import ExpLang
-open import PosInfoProp
+open import PositiveInfo
 
 -- We embed the language of simple expressions inside a small
 -- imperative language with assignments and while-loops (called here SWhile).
@@ -42,26 +42,28 @@ data Stmt : Set where
 -- its evaluator as a total Agda function.
 -- Thus we specify its semantics as a relation.
 
-data SWhileEvalRel : Val → Stmt → Val → Set where
-  SWhileEvalAssign :
-    ∀ {t v} → SWhileEvalRel v (Assign t) (evalT t v) 
-  SWhileEvalSeq :
+-- Big-step evaluation relation
+
+data _⊨_⇓_ : Stmt → Val → Val → Set where
+  ⇓-Assign :
+    ∀ {t v} → Assign t ⊨ v ⇓ (evalT t v) 
+  ⇓-Seq :
     ∀ {s1 s2 v v′ v′′} →
-    SWhileEvalRel v s1 v′ → SWhileEvalRel v′ s2 v′′ →
-    SWhileEvalRel v (Seq s1 s2) v′′
-  SWhileEvalWhileNil :
+    s1 ⊨ v ⇓ v′ → s2 ⊨ v′ ⇓ v′′ →
+    Seq s1 s2 ⊨ v ⇓ v′′
+  ⇓-WhileNil :
     ∀ {cond s v} →
     evalT cond v ≡ VNil →
-    SWhileEvalRel v (While cond s) v
-  SWhileEvalWhileBottom :
+    While cond s ⊨ v ⇓ v
+  ⇓-WhileBottom :
     ∀ {cond s v} →
     evalT cond v ≡ VBottom →
-    SWhileEvalRel v (While cond s) VBottom
-  SWhileEvalWhileCons :
+    While cond s ⊨ v ⇓ VBottom
+  ⇓-WhileCons :
     ∀ {cond s v v′ v′′ vh vt} →
     evalT cond v ≡ VCons vh vt →
-    SWhileEvalRel v s v′ → SWhileEvalRel v′ (While cond s) v′′ →
-    SWhileEvalRel v (While cond s) v′′
+    s ⊨ v ⇓ v′ → While cond s ⊨ v′ ⇓ v′′ →
+    While cond s ⊨ v ⇓ v′′
 
 -- A `KNF` program contains a single while loop.
 -- This is an analog of Kleene's normal form (KNF) from recursion theory.
@@ -69,7 +71,7 @@ data SWhileEvalRel : Val → Stmt → Val → Set where
 -- can be represented as a record of 4 simple expressions
 
 record KNFProg : Set where
-  constructor NFProg
+  constructor KNF
   field
     initExp  : Trm
     condExp  : Trm
@@ -225,18 +227,18 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
   helper (While t s') () | VCons v1 v2 | nothing | [ g ]ⁱ
   helper (While t s') h′ | VBottom = h′
 
--- SWhileEvalRel⇒evalS
+-- ⇓-⇒evalS
 
-SWhileEvalRel⇒evalS :
+⇓-⇒evalS :
   ∀ s v v′ →
-    SWhileEvalRel v s v′ →
+    s ⊨ v ⇓ v′ →
     (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
 
-SWhileEvalRel⇒evalS (Assign t) v .(evalT t v) SWhileEvalAssign =
+⇓-⇒evalS (Assign t) v .(evalT t v) ⇓-Assign =
   suc zero , refl
 
-SWhileEvalRel⇒evalS (Seq s1 s2) v v′′ (SWhileEvalSeq {v′ = v′} h₁ h₂)
-  with SWhileEvalRel⇒evalS s1 v v′ h₁ | SWhileEvalRel⇒evalS s2 v′ v′′ h₂
+⇓-⇒evalS (Seq s1 s2) v v′′ (⇓-Seq {v′ = v′} h₁ h₂)
+  with ⇓-⇒evalS s1 v v′ h₁ | ⇓-⇒evalS s2 v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
     evalS (i₁ ⊔ i₂) s1 v >>= evalS (i₁ ⊔ i₂) s2
       ≡⟨ cong (flip _>>=_ (evalS (i₁ ⊔ i₂) s2))
@@ -247,7 +249,7 @@ SWhileEvalRel⇒evalS (Seq s1 s2) v v′′ (SWhileEvalSeq {v′ = v′} h₁ h�
     ∎)
   where open ≡-Reasoning
 
-SWhileEvalRel⇒evalS (While t s) .v′′ v′′ (SWhileEvalWhileNil ≡VNil) =
+⇓-⇒evalS (While t s) .v′′ v′′ (⇓-WhileNil ≡VNil) =
   suc zero , (begin
     evalS-While zero t s v′′ (evalT t v′′)
       ≡⟨ cong (evalS-While zero t s v′′) ≡VNil ⟩
@@ -255,7 +257,7 @@ SWhileEvalRel⇒evalS (While t s) .v′′ v′′ (SWhileEvalWhileNil ≡VNil) 
     ∎)
   where open ≡-Reasoning
 
-SWhileEvalRel⇒evalS (While t s) v .VBottom (SWhileEvalWhileBottom ≡VBottom) =
+⇓-⇒evalS (While t s) v .VBottom (⇓-WhileBottom ≡VBottom) =
   suc zero , (begin
     evalS-While zero t s v (evalT t v)
       ≡⟨ cong (evalS-While zero t s v) ≡VBottom ⟩
@@ -263,9 +265,9 @@ SWhileEvalRel⇒evalS (While t s) v .VBottom (SWhileEvalWhileBottom ≡VBottom) 
     ∎)
   where open ≡-Reasoning
 
-SWhileEvalRel⇒evalS (While t s) v v′′
-  (SWhileEvalWhileCons {v′ = v′} ≡VCons h₁ h₂)
-  with SWhileEvalRel⇒evalS s v v′ h₁ | SWhileEvalRel⇒evalS (While t s) v′ v′′ h₂
+⇓-⇒evalS (While t s) v v′′
+  (⇓-WhileCons {v′ = v′} ≡VCons h₁ h₂)
+  with ⇓-⇒evalS s v v′ h₁ | ⇓-⇒evalS (While t s) v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
     evalS-While (i₁ ⊔ i₂) t s v (evalT t v)
       ≡⟨ cong (evalS-While (i₁ ⊔ i₂) t s v) ≡VCons ⟩
@@ -278,62 +280,61 @@ SWhileEvalRel⇒evalS (While t s) v v′′
     ∎)
   where open ≡-Reasoning
 
--- evalS⇒SWhileEvalRel
+-- evalS⇒-⇓
 
-evalS⇒SWhileEvalRel :
+evalS⇒-⇓ :
   ∀ i s v v′ →
     evalS i s v ≡ just v′ →
-    SWhileEvalRel v s v′
+    s ⊨ v ⇓ v′
 
-evalS⇒SWhileEvalRel zero s v v′′ ()
+evalS⇒-⇓ zero s v v′′ ()
 
-evalS⇒SWhileEvalRel (suc i) (Assign t) v .(evalT t v) refl =
-  SWhileEvalAssign
+evalS⇒-⇓ (suc i) (Assign t) v .(evalT t v) refl =
+  ⇓-Assign
 
-evalS⇒SWhileEvalRel (suc i) (Seq s1 s2) v v′′ h
+evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ h
   with evalS i s1 v | inspect (evalS i s1) v
 
-evalS⇒SWhileEvalRel (suc i) (Seq s1 s2) v v′′ h
+evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ h
   | just v′ | [ g₁ ]ⁱ
-  = SWhileEvalSeq (evalS⇒SWhileEvalRel i s1 v v′ g₁)
-                  (evalS⇒SWhileEvalRel i s2 v′ v′′ h)
+  = ⇓-Seq (evalS⇒-⇓ i s1 v v′ g₁)
+          (evalS⇒-⇓ i s2 v′ v′′ h)
 
-evalS⇒SWhileEvalRel (suc i) (Seq s1 s2) v v′′ ()
+evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ ()
   | nothing | [ g₁ ]ⁱ
 
-evalS⇒SWhileEvalRel (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (While t s) v v′′ h
   with evalT t v | inspect (evalT t) v
 
-evalS⇒SWhileEvalRel (suc i) (While t s) .v′′ v′′ refl
+evalS⇒-⇓ (suc i) (While t s) .v′′ v′′ refl
   | VNil | [ f ]ⁱ =
-  SWhileEvalWhileNil f
+  ⇓-WhileNil f
 
-evalS⇒SWhileEvalRel (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (While t s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ
   with evalS i s v | inspect (evalS i s) v
 
-evalS⇒SWhileEvalRel (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (While t s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ | just v′ | [ g ]ⁱ 
-  = SWhileEvalWhileCons f
-      (evalS⇒SWhileEvalRel i s v v′ g)
-      (evalS⇒SWhileEvalRel i (While t s) v′ v′′ h)
+  = ⇓-WhileCons f (evalS⇒-⇓ i s v v′ g)
+                  (evalS⇒-⇓ i (While t s) v′ v′′ h)
 
-evalS⇒SWhileEvalRel (suc i) (While t s) v v′′ ()
+evalS⇒-⇓ (suc i) (While t s) v v′′ ()
   | VCons v1 v2 | [ f ]ⁱ | nothing | [ g ]ⁱ
 
-evalS⇒SWhileEvalRel (suc i) (While t s) v .VBottom refl | VBottom | [ f ]ⁱ =
-  SWhileEvalWhileBottom f
+evalS⇒-⇓ (suc i) (While t s) v .VBottom refl | VBottom | [ f ]ⁱ =
+  ⇓-WhileBottom f
 
--- evalS⇔SWhileEvalRel
+-- ⇓-⇔evalS
 
-SWhileEvalRel⇔evalS :
+⇓-⇔evalS :
   ∀ s v v′ →
-    SWhileEvalRel v s v′ ⇔
+    s ⊨ v ⇓ v′ ⇔
     (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
 
-SWhileEvalRel⇔evalS s v v′ =
-  equivalence (SWhileEvalRel⇒evalS s v v′)
-              (λ {(i , h) → evalS⇒SWhileEvalRel i s v v′ h})
+⇓-⇔evalS s v v′ =
+  equivalence (⇓-⇒evalS s v v′)
+              (λ {(i , h) → evalS⇒-⇓ i s v v′ h})
 
 
 ----------------------------------------------------------
@@ -366,7 +367,7 @@ evalKNFCore′ i cond e v VBottom =
 evalKNF : (i : ℕ) (knf : KNFProg) (v : Val) → Maybe Val
 evalKNF′ : (finalExp : Trm) (r : Maybe Val) → Maybe Val
 
-evalKNF i (NFProg initExp condExp bodyExp finalExp) v =
+evalKNF i (KNF initExp condExp bodyExp finalExp) v =
   evalKNF′ finalExp (evalKNFCore i condExp bodyExp (evalT initExp v))
 
 evalKNF′ finalExp (just v′) = just (evalT finalExp v′)
@@ -377,14 +378,14 @@ evalKNF′ finalExp nothing = nothing
 -- to the relational semantics.
 ---------------------------------------------------------
 
--- SWhileEvalRel⇒evalKNFCore
+-- ⇓-⇒evalKNFCore
 
-SWhileEvalRel⇒evalKNFCore :
+⇓-⇒evalKNFCore :
   ∀ cond e v v′ →
-    SWhileEvalRel v (While cond (Assign e)) v′ →
+    While cond (Assign e) ⊨ v ⇓ v′ →
     (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
 
-SWhileEvalRel⇒evalKNFCore cond e .v v (SWhileEvalWhileNil ≡VNil) =
+⇓-⇒evalKNFCore cond e .v v (⇓-WhileNil ≡VNil) =
   suc zero , (begin
     evalKNFCore′ 0 cond e v (evalT cond v)
       ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VNil ⟩
@@ -392,8 +393,8 @@ SWhileEvalRel⇒evalKNFCore cond e .v v (SWhileEvalWhileNil ≡VNil) =
   ∎)
   where open ≡-Reasoning
 
-SWhileEvalRel⇒evalKNFCore cond e v .VBottom
-    (SWhileEvalWhileBottom ≡VBottom) =
+⇓-⇒evalKNFCore cond e v .VBottom
+    (⇓-WhileBottom ≡VBottom) =
   suc zero , (begin
     evalKNFCore′ 0 cond e v (evalT cond v)
       ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VBottom ⟩
@@ -401,9 +402,9 @@ SWhileEvalRel⇒evalKNFCore cond e v .VBottom
   ∎)
   where open ≡-Reasoning
 
-SWhileEvalRel⇒evalKNFCore cond e v v′′
-    (SWhileEvalWhileCons ≡VCons SWhileEvalAssign h₂)
-  with SWhileEvalRel⇒evalKNFCore cond e (evalT e v) v′′ h₂
+⇓-⇒evalKNFCore cond e v v′′
+    (⇓-WhileCons ≡VCons ⇓-Assign h₂)
+  with ⇓-⇒evalKNFCore cond e (evalT e v) v′′ h₂
 ... | i , g = (suc i) , (begin
   evalKNFCore′ i cond e v (evalT cond v)
     ≡⟨ cong (evalKNFCore′ i cond e v) ≡VCons ⟩
@@ -413,51 +414,50 @@ SWhileEvalRel⇒evalKNFCore cond e v v′′
   ∎)
   where open ≡-Reasoning
 
--- evalKNFCore⇒SWhileEvalRel
+-- evalKNFCore⇒-⇓
 
-evalKNFCore⇒SWhileEvalRel :
+evalKNFCore⇒-⇓ :
   ∀ i cond e v v′ →
     evalKNFCore i cond e v ≡ just v′ →
-    SWhileEvalRel v (While cond (Assign e)) v′
+    While cond (Assign e) ⊨ v ⇓ v′
 
-evalKNFCore⇒SWhileEvalRel zero cond e v v′ ()
+evalKNFCore⇒-⇓ zero cond e v v′ ()
 
-evalKNFCore⇒SWhileEvalRel (suc i) cond e v v′ h
+evalKNFCore⇒-⇓ (suc i) cond e v v′ h
   with evalT cond v | inspect (evalT cond) v
 
-evalKNFCore⇒SWhileEvalRel (suc i) cond e .v′ v′ refl | VNil | [ f ]ⁱ =
-  SWhileEvalWhileNil f
+evalKNFCore⇒-⇓ (suc i) cond e .v′ v′ refl | VNil | [ f ]ⁱ =
+  ⇓-WhileNil f
 
-evalKNFCore⇒SWhileEvalRel (suc i) cond e v v′ h | VCons v1 v2 | [ f ]ⁱ
-  = SWhileEvalWhileCons f
-      SWhileEvalAssign
-      (evalKNFCore⇒SWhileEvalRel i cond e (evalT e v) v′ h)
+evalKNFCore⇒-⇓ (suc i) cond e v v′ h | VCons v1 v2 | [ f ]ⁱ
+  = ⇓-WhileCons f ⇓-Assign
+                  (evalKNFCore⇒-⇓ i cond e (evalT e v) v′ h)
 
-evalKNFCore⇒SWhileEvalRel (suc i) cond e v .VBottom refl | VBottom | [ f ]ⁱ =
-  SWhileEvalWhileBottom f
+evalKNFCore⇒-⇓ (suc i) cond e v .VBottom refl | VBottom | [ f ]ⁱ =
+  ⇓-WhileBottom f
 
--- SWhileEvalRel⇔evalKNFCore
+-- ⇓-⇔evalKNFCore
 
-SWhileEvalRel⇔evalKNFCore :
+⇓-⇔evalKNFCore :
   ∀ cond e v v′ →
-    SWhileEvalRel v (While cond (Assign e)) v′ ⇔
+    While cond (Assign e) ⊨ v ⇓ v′ ⇔
     (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
 
-SWhileEvalRel⇔evalKNFCore cond e v v′ =
-  equivalence (SWhileEvalRel⇒evalKNFCore cond e v v′)
-              (λ {(i , h) → evalKNFCore⇒SWhileEvalRel i cond e v v′ h})
+⇓-⇔evalKNFCore cond e v v′ =
+  equivalence (⇓-⇒evalKNFCore cond e v v′)
+              (λ {(i , h) → evalKNFCore⇒-⇓ i cond e v v′ h})
 
--- SWhileEvalRel⇒evalKNF
+-- ⇓-⇒evalKNF
 
-SWhileEvalRel⇒evalKNF :
+⇓-⇒evalKNF :
   ∀ knf v v′ →
-    SWhileEvalRel v (KNFtoProg knf) v′ →
+    KNFtoProg knf ⊨ v ⇓ v′ →
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
 
-SWhileEvalRel⇒evalKNF
-  (NFProg initExp condExp bodyExp finalExp) v .(evalT finalExp v′)
-  (SWhileEvalSeq SWhileEvalAssign (SWhileEvalSeq {v′ = v′} hw SWhileEvalAssign))
-  with SWhileEvalRel⇒evalKNFCore condExp bodyExp (evalT initExp v) v′ hw
+⇓-⇒evalKNF
+  (KNF initExp condExp bodyExp finalExp) v .(evalT finalExp v′)
+  (⇓-Seq ⇓-Assign (⇓-Seq {v′ = v′} hw ⇓-Assign))
+  with ⇓-⇒evalKNFCore condExp bodyExp (evalT initExp v) v′ hw
 ... | i , ≡v′ = i , (begin
   evalKNF′ finalExp (evalKNFCore i condExp bodyExp (evalT initExp v))
     ≡⟨ cong (evalKNF′ finalExp) ≡v′ ⟩
@@ -465,38 +465,38 @@ SWhileEvalRel⇒evalKNF
   ∎)
   where open ≡-Reasoning
 
--- evalKNF⇒SWhileEvalRel
+-- evalKNF⇒-⇓
 
-evalKNF⇒SWhileEvalRel :
+evalKNF⇒-⇓ :
   ∀ i knf v v′ →
     evalKNF i knf v ≡ just v′ →
-    SWhileEvalRel v (KNFtoProg knf) v′
+    KNFtoProg knf ⊨ v ⇓ v′
 
-evalKNF⇒SWhileEvalRel i
-  (NFProg initExp condExp bodyExp finalExp) v v′′ h
+evalKNF⇒-⇓ i
+  (KNF initExp condExp bodyExp finalExp) v v′′ h
   with evalKNFCore i condExp bodyExp (evalT initExp v)
      | inspect (evalKNFCore i condExp bodyExp) (evalT initExp v)
 
-evalKNF⇒SWhileEvalRel i
-  (NFProg initExp condExp bodyExp finalExp) v .(evalT finalExp v′) refl
+evalKNF⇒-⇓ i
+  (KNF initExp condExp bodyExp finalExp) v .(evalT finalExp v′) refl
   | just v′ | [ ≡v′ ]ⁱ =
-  SWhileEvalSeq SWhileEvalAssign
-                (SWhileEvalSeq (evalKNFCore⇒SWhileEvalRel i condExp bodyExp
-                               (evalT initExp v) v′ ≡v′) SWhileEvalAssign)
+  ⇓-Seq ⇓-Assign
+        (⇓-Seq (evalKNFCore⇒-⇓ i condExp bodyExp
+               (evalT initExp v) v′ ≡v′) ⇓-Assign)
 
-evalKNF⇒SWhileEvalRel i (NFProg initExp condExp bodyExp finalExp) v v′′ ()
+evalKNF⇒-⇓ i (KNF initExp condExp bodyExp finalExp) v v′′ ()
   | nothing | [ ≡v′ ]ⁱ
 
--- SWhileEvalRel⇔evalKNF
+-- ⇓-⇔evalKNF
 
-SWhileEvalRel⇔evalKNF :
+⇓-⇔evalKNF :
   ∀ knf v v′ →
-    SWhileEvalRel v (KNFtoProg knf) v′ ⇔
+    KNFtoProg knf ⊨ v ⇓ v′ ⇔
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
 
-SWhileEvalRel⇔evalKNF knf v v′ =
-  equivalence (SWhileEvalRel⇒evalKNF knf v v′)
-              (λ {(i , h) → evalKNF⇒SWhileEvalRel i knf v v′ h})
+⇓-⇔evalKNF knf v v′ =
+  equivalence (⇓-⇒evalKNF knf v v′)
+              (λ {(i , h) → evalKNF⇒-⇓ i knf v v′ h})
 
 ---------------------------------------------------------
 -- The executable KNF interpreter is correct with respect
@@ -512,9 +512,9 @@ evalKNF⇔evalS :
 
 evalKNF⇔evalS knf v v′ =
   (∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′))
-    ∼⟨ sym $ SWhileEvalRel⇔evalKNF knf v v′ ⟩
-  SWhileEvalRel v (KNFtoProg knf) v′
-    ∼⟨ SWhileEvalRel⇔evalS (KNFtoProg knf) v v′ ⟩
+    ∼⟨ sym $ ⇓-⇔evalKNF knf v v′ ⟩
+  KNFtoProg knf ⊨ v ⇓ v′
+    ∼⟨ ⇓-⇔evalS (KNFtoProg knf) v v′ ⟩
   (∃ (λ (j : ℕ) → evalS j (KNFtoProg knf) v ≡ just v′))
   ∎
   where open Related.EquationalReasoning
