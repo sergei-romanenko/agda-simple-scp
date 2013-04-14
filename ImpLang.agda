@@ -83,29 +83,29 @@ open KNFProg public
 
 -- Big-step evaluation relation for KNF programs
 
-infix 4 While_assign_⊨_⇓_
+infix 4 [_]_⊨While_⇓_
 
-data While_assign_⊨_⇓_ : Trm → Trm → Val → Val → Set where
+data [_]_⊨While_⇓_ : Trm → Trm → Val → Val → Set where
   ⇓-WhileNil :
     ∀ {cond e v} →
-    evalT cond v ≡ VNil →
-    While cond assign e ⊨ v ⇓ v    
+    (≡VNil : evalT cond v ≡ VNil) →
+    [ cond ] e ⊨While v ⇓ v    
   ⇓-WhileBottom :
     ∀ {cond e v} →
-    evalT cond v ≡ VBottom →
-    While cond assign e ⊨ v ⇓ VBottom
+    (≡VBottom : evalT cond v ≡ VBottom) →
+    [ cond ] e ⊨While v ⇓ VBottom
   ⇓-WhileCons :
     ∀ {cond e v v′ vh vt} →
-    evalT cond v ≡ VCons vh vt →
-    While cond assign e ⊨ evalT e v ⇓ v′ →
-    While cond assign e ⊨ v ⇓ v′
+    (≡VCons : evalT cond v ≡ VCons vh vt) →
+    (h : [ cond ] e ⊨While evalT e v ⇓ v′) →
+    [ cond ] e ⊨While v ⇓ v′
 
 infix 4 _⊨KNF_⇓_
 
 data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
   ⇓-eval :
     ∀ {init cond body final v v′} →
-      While cond assign body ⊨ (evalT init v) ⇓ v′ →
+      [ cond ] body ⊨While (evalT init v) ⇓ v′ →
       KNF init cond body final ⊨KNF v ⇓ evalT final v′
 
 -- KNFtoProg
@@ -124,7 +124,7 @@ KNFtoProg knf =
 
 ⊨While⇒⊨ :
   ∀ {cond e v v′} →
-  While cond assign e ⊨ v ⇓ v′ →
+  [ cond ] e ⊨While v ⇓ v′ →
   While cond (Assign e) ⊨ v ⇓ v′
 
 -- ⊨While⇒⊨
@@ -150,7 +150,7 @@ KNFtoProg knf =
 ⊨⇒⊨While :
   ∀ {cond e v v′} →
   While cond (Assign e) ⊨ v ⇓ v′ →
-  While cond assign e ⊨ v ⇓ v′
+  [ cond ] e ⊨While v ⇓ v′
 
 ⊨⇒⊨While (⇓-WhileNil ≡VNil) =
   ⇓-WhileNil ≡VNil
@@ -476,7 +476,7 @@ evalKNF′ finalExp nothing = nothing
 
 ⊨While⇒evalKNFCore :
   ∀ {cond e v v′} →
-    While cond assign e ⊨ v ⇓ v′ →
+    [ cond ] e ⊨While v ⇓ v′ →
     (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
 
 ⊨While⇒evalKNFCore (⇓-WhileNil {cond} {e} {v} ≡VNil) =
@@ -533,7 +533,7 @@ evalKNF′ finalExp nothing = nothing
 evalKNFCore⇒⊨While :
   ∀ i {cond e v v′} →
     evalKNFCore i cond e v ≡ just v′ →
-    While cond assign e ⊨ v ⇓ v′
+    [ cond ] e ⊨While v ⇓ v′
 
 evalKNFCore⇒⊨While zero ()
 
