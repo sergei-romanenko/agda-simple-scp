@@ -13,8 +13,10 @@ open import Data.Product
 open import Data.Empty
 
 open import Function
+open import Function.Equality
+  using (_⟨$⟩_; module Π)
 open import Function.Equivalence
-  using (_⇔_; equivalence)
+  using (module Equivalence; _⇔_; equivalence)
 
 
 open import Relation.Binary.PropositionalEquality as P
@@ -40,30 +42,6 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 -- Unrolling respects the semantics
 -----------------------------------
 
-{-
--- ⊨KNF-Bottom
-
-⊨While-Bottom : ∀ {cond e} →
-  strictTrm cond →
-  [ cond ] e ⊨While VBottom ⇓ VBottom
-
-⊨While-Bottom h = ⇓-WhileBottom h
--}
-
-{-
--- evalKNFCore-Bottom
-
-evalKNFCore-Bottom : ∀ i cond e v →
-  strictTrm cond →
-  evalKNFCore i cond e VBottom ≡ just v →
-  v ≡ VBottom
-
-evalKNFCore-Bottom zero cond e v hs ()
-
-evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
-  cong (maybe id VBottom) (P.sym h)
--}
-
 -- ⊨While-unrollToInit⇒
 
 ⊨While-unrollToInit⇒ :
@@ -78,6 +56,8 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
   ⇓-WhileBottom hs
 ⊨While-unrollToInit⇒ hs (⇓-WhileCons ≡VCons h) rewrite ≡VCons =
   h
+
+-- ⊨While-unrollToInit⇐
 
 ⊨While-unrollToInit⇐ :
   ∀  {cond e v v′} →
@@ -115,9 +95,19 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
 ⊨While-unrollToInit hs =
   equivalence (⊨While-unrollToInit⇒ hs) (⊨While-unrollToInit⇐ hs)
 
--- ⊨KNF-unrollToInit⇒-lemma
+-- ⊨While-cong-v
 
-⊨KNF-unrollToInit⇒-lemma :
+⊨While-cong-v :
+  ∀ {cond body v₁ v₂ v′} →
+    v₁ ≡ v₂ →
+    [ cond ] body ⊨While v₁ ⇓ v′ ≡ [ cond ] body ⊨While v₂ ⇓ v′
+
+⊨While-cong-v {cond} {body} {v₁} {v₂} {v′} v₁≡v₂ =
+  cong (flip ([_]_⊨While_⇓_ cond body) v′) v₁≡v₂
+
+-- ⊨KNF-unrollToInit⇒-lemma₁
+
+⊨KNF-unrollToInit-lemma₁ :
   ∀ init cond body v →
       evalNT (propagateIfCond
         (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
@@ -126,7 +116,7 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
       ifNil (evalT cond (evalT init v))
             (evalT init v) (evalT body (evalT init v))
 
-⊨KNF-unrollToInit⇒-lemma init cond body v = begin
+⊨KNF-unrollToInit-lemma₁ init cond body v = begin
   evalNT (propagateIfCond
     (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
               (normConv init))) v
@@ -154,6 +144,31 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
   ∎
   where open ≡-Reasoning
 
+-- ⊨KNF-unrollToInit-lemma₂
+
+⊨KNF-unrollToInit-lemma₂ :
+  ∀ (init cond body final : Trm) (v v′ : Val) →
+    strictTrm cond →
+    [ cond ] body ⊨While evalT init v ⇓ v′ ⇔
+    [ cond ] body ⊨While
+      evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
+                                                 (normConv body))
+                                        (normConv init))) v ⇓ v′
+
+⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs =
+  [ cond ] body ⊨While evalT init v ⇓ v′
+    ∼⟨ ⊨While-unrollToInit hs ⟩
+  [ cond ] body ⊨While
+    ifNil (evalT cond (evalT init v))
+          (evalT init v) (evalT body (evalT init v)) ⇓ v′
+    ≡⟨ ⊨While-cong-v (P.sym $ ⊨KNF-unrollToInit-lemma₁ init cond body v) ⟩
+  [ cond ] body ⊨While
+    evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
+                                               (normConv body))
+                                      (normConv init))) v ⇓ v′
+  ∎
+  where open Related.EquationalReasoning
+
 -- ⊨KNF-unrollToInit⇒
 
 ⊨KNF-unrollToInit⇒ :
@@ -161,26 +176,9 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
     strictTrm (condExp knf) →
     knf ⊨KNF v ⇓ v′ → unrollToInit knf ⊨KNF v ⇓ v′
 
-⊨KNF-unrollToInit⇒ hs (⇓-eval {init} {cond} {body} {final} {v} {v′} hw)
-  rewrite evalNT∘propagateIfCond
-    ((normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
-               (normConv init))) v
-  = ⇓-eval (helper hw)
-  where
-  open Related.EquationalReasoning
-  helper =
-    [ cond ] body ⊨While evalT init v ⇓ v′
-      ∼⟨ ⊨While-unrollToInit⇒ hs ⟩
-    [ cond ] body ⊨While
-      ifNil (evalT cond (evalT init v))
-            (evalT init v) (evalT body (evalT init v)) ⇓ v′
-      ∼⟨ subst (flip ([_]_⊨While_⇓_ cond body) v′)
-               (P.sym $ ⊨KNF-unrollToInit⇒-lemma init cond body v) ⟩
-    [ cond ] body ⊨While
-      evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
-                                                 (normConv body))
-                                        (normConv init))) v ⇓ v′
-    ∎
+⊨KNF-unrollToInit⇒ hs (⇓-eval {init} {cond} {body} {final} {v} {v′} hw) =
+  ⇓-eval (Equivalence.to
+           (⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs) ⟨$⟩ hw)
 
 -- ⊨KNF-unrollToInit⇐
 
@@ -189,7 +187,9 @@ evalKNFCore-Bottom (suc i) cond e v hs h rewrite hs =
     strictTrm (condExp knf) →
     unrollToInit knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′
 
-⊨KNF-unrollToInit⇐ hs = {!!}
+⊨KNF-unrollToInit⇐ {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw) =
+  ⇓-eval (Equivalence.from
+           (⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs) ⟨$⟩ hw)
 
 -- ⊨KNF-unrollToInit
 
