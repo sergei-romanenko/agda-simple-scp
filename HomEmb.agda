@@ -5,7 +5,11 @@
 module HomEmb where
 
 open import Data.Nat
+open import Data.Fin
+  using (Fin; zero; suc)
+  renaming (_<_ to _<F_)
 open import Data.Bool
+open import Data.Vec
 open import Data.Maybe
 open import Data.Empty
 open import Data.Product
@@ -28,52 +32,51 @@ open import Util
 -- To formulate this theorem in its general form,
 -- we introduce a type of arbitrary first-order terms.
 
-module FOTerms
-  (V : Set)
-  (F : Set)
-  (_≟F_ : (f g : F) → Dec (f ≡ g))
+-- FOTerm
+
+data FOTerm (V F : Set) : Set where
+  FOVar  : (v : V) → FOTerm V F
+  FOFun0 : (mf : Maybe F) → FOTerm V F
+  FOFun2 : (mf : Maybe F) → (t₁ t₂ : FOTerm V F) → FOTerm V F
+
+-- _⊴_ - homeomorphic embedding relation
+
+infix 4 _⊴_
+
+data _⊴_ {V F : Set} : (t₁ t₂ : FOTerm V F) → Set where
+  ⊴-var : ∀ {u v : V} →
+    FOVar u ⊴ FOVar v
+  ⊴-00 : ∀ {mf : Maybe F} →
+    FOFun0 mf ⊴ FOFun0 mf
+  ⊴-02l : ∀ {mf mg : Maybe F} {t₁ t₂ : FOTerm V F} →
+    FOFun0 mf ⊴ t₁ →
+    FOFun0 mf ⊴ FOFun2 mg t₁ t₂
+  ⊴-02r : ∀ {mf mg : Maybe F} {t₁ t₂ : FOTerm V F} →
+    FOFun0 mf ⊴ t₂ →
+    FOFun0 mf ⊴ FOFun2 mg t₁ t₂
+  ⊴-22b : ∀ {mf : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm V F} →
+    t₁ ⊴ t′₁ → t₂ ⊴ t′₂ →
+    FOFun2 mf t₁ t₂ ⊴ FOFun2 mf t′₁ t′₂
+  ⊴-22l : ∀ {mf mg : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm V F} →
+    FOFun2 mf t₁ t₂ ⊴ t′₁ →
+    FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
+  ⊴-22r : ∀ {mf mg : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm V F} →
+    FOFun2 mf t₁ t₂ ⊴ t′₂ →
+    FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
+
+-- _⊴?_
+
+module ⊴?-Dummy
+  {V F : Set}
+  {_≟F_ : (f g : F) → Dec (f ≡ g)}
   where
 
-  data FOTerm : Set where
-    FOVar  : (v : V) → FOTerm
-    FOFun0 : (mf : Maybe F) → FOTerm
-    FOFun2 : (mf : Maybe F) → (t₁ t₂ : FOTerm) → FOTerm
-
-  infix 4 _≟MF_
-
   _≟MF_ : (mf mg : Maybe F) → Dec (mf ≡ mg)
-  _≟MF_ mf mg = maybe-dec _≟F_
-
-  -- _⊴_ - homeomorphic embedding relation
-
-  infix 4 _⊴_
-
-  data _⊴_ : (t₁ t₂ : FOTerm) → Set where
-    ⊴-var : ∀ {u v : V} →
-      FOVar u ⊴ FOVar v
-    ⊴-00 : ∀ {mf : Maybe F} →
-      FOFun0 mf ⊴ FOFun0 mf
-    ⊴-02l : ∀ {mf mg : Maybe F} {t₁ t₂ : FOTerm} →
-      FOFun0 mf ⊴ t₁ →
-      FOFun0 mf ⊴ FOFun2 mg t₁ t₂
-    ⊴-02r : ∀ {mf mg : Maybe F} {t₁ t₂ : FOTerm} →
-      FOFun0 mf ⊴ t₂ →
-      FOFun0 mf ⊴ FOFun2 mg t₁ t₂
-    ⊴-22b : ∀ {mf : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm} →
-      t₁ ⊴ t′₁ → t₂ ⊴ t′₂ →
-      FOFun2 mf t₁ t₂ ⊴ FOFun2 mf t′₁ t′₂
-    ⊴-22l : ∀ {mf mg : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm} →
-      FOFun2 mf t₁ t₂ ⊴ t′₁ →
-      FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
-    ⊴-22r : ∀ {mf mg : Maybe F} {t₁ t₂ t′₁ t′₂ : FOTerm} →
-      FOFun2 mf t₁ t₂ ⊴ t′₂ →
-      FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
-
-  -- _⊴_
+  mf ≟MF mg = maybe-dec _≟F_
 
   infix 4 _⊴?_
 
-  _⊴?_ : (t₁ t₂ : FOTerm) → Dec (t₁ ⊴ t₂)
+  _⊴?_ : (t₁ t₂ : FOTerm V F) → Dec (t₁ ⊴ t₂)
 
   FOVar v ⊴? FOVar v' =
     yes ⊴-var
@@ -99,7 +102,7 @@ module FOTerms
   FOFun2 mf t₁ t₂ ⊴? FOVar v = no (λ ())
   FOFun2 mf t₁ t₂ ⊴? FOFun0 mg = no (λ ())
   FOFun2 mf t₁ t₂ ⊴? FOFun2 mg t′₁ t′₂
-    with FOFun2 mf t₁ t₂ ⊴? t′₁ | FOFun2 mf t₁ t₂ ⊴? t′₂ | mf ≟MF mg 
+    with FOFun2 mf t₁ t₂ ⊴? t′₁ | FOFun2 mf t₁ t₂ ⊴? t′₂ | mf ≟MF mg
   ... | yes y1 | _      | _ = yes (⊴-22l y1)
   ... | _      | yes y2 | _ = yes (⊴-22r y2)
   ... | no n1  | no n2  | no  mf≢mg = no (helper n1 n2 mf≢mg)
@@ -126,11 +129,11 @@ module FOTerms
           helper n22 (⊴-22r y2) = n2 y2
   ... | yes y11 | yes y22 = yes (⊴-22b y11 y22)
 
+open ⊴?-Dummy public
 
-  postulate
-    Kruskal : (s : Sequence FOTerm) →
-      ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
-
+postulate
+  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
+    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
 
   {-
   -- homemb
@@ -156,5 +159,15 @@ module FOTerms
     Kruskal : (s : Sequence FOTerm) →
       ∃₂ λ (i j : ℕ) → i < j × (homemb (s i) (s j) ≡ true)
   -}
+
+-- To use Kruskal's theorem for online termination, we need a few 
+-- additional ingredients.
+
+firstEmbedded : {V F : Set} →
+       (_≟F_ : (f g : F) → Dec (f ≡ g))
+       (n : ℕ) → (s : Vec (FOTerm V F) n) →
+       Maybe (∃₂ λ (i j : Fin n) → i <F j × (lookup i s ⊴ lookup j s))
+
+firstEmbedded _≟F_ n s = {!!}
 
 --
