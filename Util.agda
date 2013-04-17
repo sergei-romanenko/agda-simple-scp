@@ -1,26 +1,35 @@
 module Util where
 
+open import Data.Nat
 open import Data.List
+open import Data.Maybe
 
 open import Data.List.Properties
 open import Data.List.Reverse
 
-open import Level
+import Level
 open import Function
 
-open import Relation.Binary.PropositionalEquality renaming ([_] to ≡[_])
+open import Relation.Nullary
+open import Relation.Binary.PropositionalEquality renaming ([_] to [_]ⁱ)
 
 open ≡-Reasoning
+
+-- ++-[]
 
 ++-[] : ∀ {ℓ} {A : Set ℓ} (xs : List A) →
   xs ++ [] ≡ xs
 ++-[] [] = refl
 ++-[] (x ∷ xs) = cong (_∷_ x) (++-[] xs)
 
+-- ++-assoc
+
 ++-assoc : ∀ {ℓ} {A : Set ℓ} (xs ys zs : List A) →
   (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
 ++-assoc [] ys zs = refl
 ++-assoc (x ∷ xs) ys zs = cong (_∷_ x) (++-assoc xs ys zs)
+
+-- foldl⇒foldr
 
 foldl⇒foldr : ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
                 foldl f n xs ≡ foldr (λ b g x → g (f x b)) id xs n
@@ -34,6 +43,8 @@ foldl⇒foldr f n (b ∷ xs) =
     foldr (λ b g x → g (f x b)) id (b ∷ xs) n
   ∎
 
+
+-- reverse-involutive
 
 reverse-involutive : ∀ {A : Set} (xs : List A) → reverse (reverse xs) ≡ xs
 reverse-involutive [] = refl
@@ -50,15 +61,18 @@ reverse-involutive (x ∷ xs) =
     x ∷ xs
   ∎
 
+-- foldr-∷ʳ
 
 foldr-∷ʳ : ∀ {A B : Set} (f : A → B → B) → ∀ n xs x →
           foldr f n (xs ∷ʳ x) ≡ foldr f (f x n) xs
 foldr-∷ʳ f n [] x = refl
 foldr-∷ʳ f n (x' ∷ xs) x = cong (f x') (foldr-∷ʳ f n xs x)
 
+-- foldl⇒foldr-reverse
 
-foldl⇒foldr-reverse : ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
-                    foldl f n xs ≡ foldr (flip f) n (reverse xs)
+foldl⇒foldr-reverse :
+  ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
+    foldl f n xs ≡ foldr (flip f) n (reverse xs)
 foldl⇒foldr-reverse f n [] = refl
 foldl⇒foldr-reverse f n (x ∷ xs) =
   begin
@@ -72,3 +86,48 @@ foldl⇒foldr-reverse f n (x ∷ xs) =
       ≡⟨ cong (foldr (flip f) n) (sym (unfold-reverse x xs)) ⟩
     foldr (flip f) n (reverse (x ∷ xs))
   ∎
+
+--
+-- Sequences
+--
+
+-- The word `Sequence` is used to avoid conflict with `stream`
+-- (in Data.Stream).
+
+Sequence : Set → Set
+Sequence A = ℕ → A
+
+sequenceMap : {A B : Set} (f : A → B) (s : Sequence A) → Sequence B
+sequenceMap f s = λ (n : ℕ) → f (s n)
+
+streamUnfold :  {A : Set} (seed : A) (f : A → A) → Sequence A
+streamUnfold seed f zero = seed
+streamUnfold seed f (suc n) = f (streamUnfold seed f n)
+
+-- just-injective
+
+just-injective : ∀ {ℓ} {A : Set ℓ} {x y : A} →
+  (just x ∶ Maybe A) ≡ just y → x ≡ y
+just-injective refl = refl
+
+-- maybe-dec
+
+maybe-dec : ∀ {ℓ} {A : Set ℓ}
+  (_≟A_ : (x y : A) → Dec (x ≡ y)) →
+  {u v : Maybe A} → Dec (u ≡ v)
+
+maybe-dec _≟A_ {just x} {just y} with x ≟A y
+... | yes x≡y = yes (cong just x≡y)
+... | no  x≢y = no (x≢y ∘ just-injective)
+
+maybe-dec _≟A_ {just x} {nothing} =
+  no (λ ())
+
+maybe-dec _≟A_ {nothing} {just x} =
+  no (λ ())
+
+maybe-dec _≟A_ {nothing} {nothing} =
+  yes refl
+
+
+--
