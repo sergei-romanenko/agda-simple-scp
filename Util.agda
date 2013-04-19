@@ -2,9 +2,15 @@ module Util where
 
 open import Data.Nat
 open import Data.List
+open import Data.Bool
 open import Data.Maybe
+open import Data.Product
+open import Data.Empty
+open import Data.Unit using (⊤)
 
 open import Data.List.Properties
+open import Data.List.Any
+  using (here; there; module Membership-≡)
 open import Data.List.Reverse
 
 import Level
@@ -14,6 +20,7 @@ open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality renaming ([_] to [_]ⁱ)
 
 open ≡-Reasoning
+open Membership-≡
 
 -- ++-[]
 
@@ -100,9 +107,36 @@ Sequence A = ℕ → A
 sequenceMap : {A B : Set} (f : A → B) (s : Sequence A) → Sequence B
 sequenceMap f s = λ (n : ℕ) → f (s n)
 
-streamUnfold :  {A : Set} (seed : A) (f : A → A) → Sequence A
-streamUnfold seed f zero = seed
-streamUnfold seed f (suc n) = f (streamUnfold seed f n)
+sequenceUnfold :  {A : Set} (seed : A) (f : A → A) → Sequence A
+sequenceUnfold seed f zero = seed
+sequenceUnfold seed f (suc n) = f (sequenceUnfold seed f n)
+
+ℕ-seq : (k l : ℕ) → List ℕ
+ℕ-seq k zero = []
+ℕ-seq k (suc l) = k ∷ ℕ-seq (suc k) l
+
+find-in-list : ∀ {a} {A : Set a} (p : A → Bool) → List A → Maybe A
+find-in-list p [] = nothing
+find-in-list p (x ∷ xs) with p x
+... | true = just x
+... | false = find-in-list p xs
+
+find-just : ∀ {a} {A : Set a}
+  (p : A → Bool) (x : A) (xs : List A) →
+  x ∈ xs → p x ≡ true →
+  ∃ λ y → find-in-list p xs ≡ just y
+
+find-just p x [] () px≡true
+
+find-just p x (y ∷ xs) (here x≡y) px≡true
+  rewrite sym x≡y | px≡true = x , refl
+find-just p x (y ∷ xs) (there pxs) px≡true with p y
+... | true = y , refl
+... | false with find-in-list p xs | find-just p x xs
+find-just p x (y ∷ xs) (there pxs) px≡true
+  | false | just z | h = z , refl
+find-just p x (y ∷ xs) (there pxs) px≡true
+  | false | nothing | h = h pxs px≡true
 
 -- just-injective
 
@@ -129,5 +163,8 @@ maybe-dec _≟A_ {nothing} {just x} =
 maybe-dec _≟A_ {nothing} {nothing} =
   yes refl
 
+<⇒≤ : {m n : ℕ} → m < n → m ≤ n
+<⇒≤ (s≤s z≤n) = z≤n
+<⇒≤ (s≤s (s≤s m≤n)) = s≤s (<⇒≤ (s≤s m≤n))
 
 --

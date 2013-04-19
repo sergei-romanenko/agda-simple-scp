@@ -5,9 +5,13 @@
 module HomEmb where
 
 open import Data.Nat
-open import Data.Fin
-  using (Fin; zero; suc)
-  renaming (_<_ to _<F_)
+open import Data.Nat.Properties
+open import Data.List
+open import Data.List.Any
+  using (here; there; module Membership-≡)
+--open import Data.Fin
+--  using (Fin; zero; suc; toℕ)
+--  renaming (_<_ to _<F_)
 open import Data.Bool
 open import Data.Vec
 open import Data.Maybe
@@ -23,6 +27,8 @@ open import Relation.Binary.PropositionalEquality as P
   hiding (sym)
 
 import Function.Related as Related
+
+open Membership-≡
 
 open import Util
 
@@ -64,11 +70,15 @@ data _⊴_ {V F : Set} : (t₁ t₂ : FOTerm V F) → Set where
     FOFun2 mf t₁ t₂ ⊴ t′₂ →
     FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
 
+postulate
+  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
+    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
+
 -- _⊴?_
 
-module ⊴?-Dummy
-  {V F : Set}
-  {_≟F_ : (f g : F) → Dec (f ≡ g)}
+module ⊴-Decidable
+  (V F : Set)
+  (_≟F_ : (f g : F) → Dec (f ≡ g))
   where
 
   _≟MF_ : (mf mg : Maybe F) → Dec (mf ≡ mg)
@@ -129,45 +139,28 @@ module ⊴?-Dummy
           helper n22 (⊴-22r y2) = n2 y2
   ... | yes y11 | yes y22 = yes (⊴-22b y11 y22)
 
-open ⊴?-Dummy public
 
-postulate
-  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
-    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
+  -- To use Kruskal's theorem for online termination, we need a few 
+  -- additional ingredients.
+
+  isNthEmbeddedBelow :
+    (n m : ℕ) → (s : Sequence (FOTerm V F)) → Bool
+
+  isNthEmbeddedBelow n m s =
+    any (λ i → ⌊ s n ⊴? s i ⌋) (ℕ-seq (suc n) m)
+
+  firstEmbedded :
+    (n : ℕ) (s : Sequence (FOTerm V F)) → Maybe ℕ
+  firstEmbedded n s =
+    find-in-list (λ i → isNthEmbeddedBelow i n s) (ℕ-seq zero n)
 
   {-
-  -- homemb
+  firstEmbedded_total :
+    (s : Sequence (FOTerm V F))→
+      ∃₂ λ n m → firstEmbedded n s ≡ just m
 
-  homemb : (t1 t2 : FOTerm) → Bool
-  homemb (FOVar v) (FOVar v') = true
-  homemb (FOVar v) (FOFun0 mf) = false
-  homemb (FOVar v) (FOFun2 mf t₁ t₂) = false
-  homemb (FOFun0 mf) (FOVar v) = false
-  homemb (FOFun0 mf) (FOFun0 mg) = ⌊ mf ≟MF mg ⌋
-  homemb (FOFun0 mf) (FOFun2 mg t₁ t₂) =
-    homemb (FOFun0 mf) t₁ ∨ homemb (FOFun0 mf) t₂
-  homemb (FOFun2 mf t₁ t₂) (FOVar v) = false
-  homemb (FOFun2 mf t₁ t₂) (FOFun0 mg) = false
-  homemb (FOFun2 mf t₁ t₂) (FOFun2 mg t′₁ t′₂) =
-    (if ⌊ mf ≟MF mg ⌋
-     then homemb t₁ t′₁ ∧ homemb t₂ t′₂
-     else false)
-    ∨
-    (homemb (FOFun2 mf t₁ t₂) t′₁ ∨ homemb (FOFun2 mf t₁ t₂) t′₂)
-
-  postulate
-    Kruskal : (s : Sequence FOTerm) →
-      ∃₂ λ (i j : ℕ) → i < j × (homemb (s i) (s j) ≡ true)
+  firstEmbedded_total s with Kruskal s
+  ... | i , j , i<j , si⊴sj = j , find-just {!!} {!!} {!!} {!!} {!!}
   -}
-
--- To use Kruskal's theorem for online termination, we need a few 
--- additional ingredients.
-
-firstEmbedded : {V F : Set} →
-       (_≟F_ : (f g : F) → Dec (f ≡ g))
-       (n : ℕ) → (s : Vec (FOTerm V F) n) →
-       Maybe (∃₂ λ (i j : Fin n) → i <F j × (lookup i s ⊴ lookup j s))
-
-firstEmbedded _≟F_ n s = {!!}
 
 --
