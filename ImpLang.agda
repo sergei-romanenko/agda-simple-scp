@@ -33,10 +33,13 @@ open import PositiveInfo
 -- We embed the language of simple expressions inside a small
 -- imperative language with assignments and while-loops (called here SWhile).
 
+infix 4 var≔_ while[_]_
+infixr 4 _//_
+
 data Stmt : Set where
-  Assign : (t : Trm) → Stmt
-  Seq    : (s1 s2 : Stmt) → Stmt
-  While  : (t : Trm) → (s : Stmt) → Stmt
+  var≔_    : (t : Trm) → Stmt
+  _//_      : (s1 s2 : Stmt) → Stmt
+  while[_]_ : (t : Trm) → (s : Stmt) → Stmt
 
 -- Since this language is Turing-complete, we cannot specify
 -- its evaluator as a total Agda function.
@@ -44,26 +47,28 @@ data Stmt : Set where
 
 -- Big-step evaluation relation for SWhile programs
 
+infix 3 _⊨_⇓_
+
 data _⊨_⇓_ : Stmt → Val → Val → Set where
-  ⇓-Assign :
-    ∀ {t v} → Assign t ⊨ v ⇓ (evalT t v) 
+  ⇓-var≔ :
+    ∀ {t v} → var≔ t ⊨ v ⇓ (evalT t v) 
   ⇓-Seq :
     ∀ {s1 s2 v v′ v′′} →
     s1 ⊨ v ⇓ v′ → s2 ⊨ v′ ⇓ v′′ →
-    Seq s1 s2 ⊨ v ⇓ v′′
+    s1 // s2 ⊨ v ⇓ v′′
   ⇓-WhileNil :
     ∀ {cond s v} →
     evalT cond v ≡ VNil →
-    While cond s ⊨ v ⇓ v
+    while[ cond ] s ⊨ v ⇓ v
   ⇓-WhileBottom :
     ∀ {cond s v} →
     evalT cond v ≡ VBottom →
-    While cond s ⊨ v ⇓ VBottom
+    while[ cond ] s ⊨ v ⇓ VBottom
   ⇓-WhileCons :
     ∀ {cond s v v′ v′′ vh vt} →
     evalT cond v ≡ VCons vh vt →
-    s ⊨ v ⇓ v′ → While cond s ⊨ v′ ⇓ v′′ →
-    While cond s ⊨ v ⇓ v′′
+    s ⊨ v ⇓ v′ → while[ cond ] s ⊨ v′ ⇓ v′′ →
+    while[ cond ] s ⊨ v ⇓ v′′
 
 -- A `KNF` program contains a single while loop.
 -- This is an analog of Kleene's normal form (KNF) from recursion theory.
@@ -100,7 +105,7 @@ data [_]_⊨While_⇓_ : Trm → Trm → Val → Val → Set where
     (h : [ cond ] e ⊨While evalT e v ⇓ v′) →
     [ cond ] e ⊨While v ⇓ v′
 
-infix 4 _⊨KNF_⇓_
+infix 3 _⊨KNF_⇓_
 
 data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
   ⇓-eval :
@@ -112,9 +117,9 @@ data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
 
 KNFtoProg : KNFProg → Stmt
 KNFtoProg knf =
-  Seq (Assign (initExp knf))
-      (Seq (While (condExp knf) (Assign (bodyExp knf)))
-           (Assign (finalExp knf)))
+  var≔ initExp knf //
+  while[ condExp knf ] var≔ bodyExp knf //
+  var≔ finalExp knf
 
 -----------------------------------------------------
 -- _⊨KNF_⇓_ is correct with respect to _⊨_⇓_ .
@@ -125,7 +130,7 @@ KNFtoProg knf =
 ⊨While⇒⊨ :
   ∀ {cond e v v′} →
   [ cond ] e ⊨While v ⇓ v′ →
-  While cond (Assign e) ⊨ v ⇓ v′
+  while[ cond ] var≔ e ⊨ v ⇓ v′
 
 -- ⊨While⇒⊨
 
@@ -134,7 +139,7 @@ KNFtoProg knf =
 ⊨While⇒⊨ (⇓-WhileBottom ≡VBottom) =
   ⇓-WhileBottom ≡VBottom
 ⊨While⇒⊨ (⇓-WhileCons ≡VCons h) =
-  ⇓-WhileCons ≡VCons ⇓-Assign (⊨While⇒⊨ h)
+  ⇓-WhileCons ≡VCons ⇓-var≔ (⊨While⇒⊨ h)
 
 -- ⊨KNF⇒⊨
 
@@ -143,20 +148,20 @@ KNFtoProg knf =
   knf ⊨KNF v ⇓ v′ → KNFtoProg knf ⊨ v ⇓ v′
 
 ⊨KNF⇒⊨ (⇓-eval h) =
-  ⇓-Seq ⇓-Assign (⇓-Seq (⊨While⇒⊨ h) ⇓-Assign)
+  ⇓-Seq ⇓-var≔ (⇓-Seq (⊨While⇒⊨ h) ⇓-var≔)
 
 -- ⊨⇒⊨While
 
 ⊨⇒⊨While :
   ∀ {cond e v v′} →
-  While cond (Assign e) ⊨ v ⇓ v′ →
+  while[ cond ] var≔ e ⊨ v ⇓ v′ →
   [ cond ] e ⊨While v ⇓ v′
 
 ⊨⇒⊨While (⇓-WhileNil ≡VNil) =
   ⇓-WhileNil ≡VNil
 ⊨⇒⊨While (⇓-WhileBottom ≡VBottom) =
   ⇓-WhileBottom ≡VBottom
-⊨⇒⊨While (⇓-WhileCons ≡VCons ⇓-Assign h) =
+⊨⇒⊨While (⇓-WhileCons ≡VCons ⇓-var≔ h) =
   ⇓-WhileCons ≡VCons (⊨⇒⊨While h)
 
 -- ⊨⇒⊨KNF
@@ -165,14 +170,14 @@ KNFtoProg knf =
   ∀ {knf v v′} →
   KNFtoProg knf ⊨ v ⇓ v′ → knf ⊨KNF v ⇓ v′
 
-⊨⇒⊨KNF (⇓-Seq ⇓-Assign (⇓-Seq h ⇓-Assign)) =
+⊨⇒⊨KNF (⇓-Seq ⇓-var≔ (⇓-Seq h ⇓-var≔)) =
   ⇓-eval (⊨⇒⊨While h)
 
 -- ⊨KNF⇔⊨
 
 ⊨KNF⇔⊨ :
   ∀ {knf v v′} →
-  knf ⊨KNF v ⇓ v′ ⇔ KNFtoProg knf ⊨ v ⇓ v′
+  (knf ⊨KNF v ⇓ v′) ⇔ (KNFtoProg knf ⊨ v ⇓ v′)
 
 ⊨KNF⇔⊨ =
   equivalence ⊨KNF⇒⊨ ⊨⇒⊨KNF
@@ -256,17 +261,17 @@ evalS-While :
   (d : ℕ) (t : Trm) (s : Stmt) (v : Val) (r : Val) → Maybe Val
 
 evalS zero s v = nothing
-evalS (suc d) (Assign t) v = just (evalT t v)
-evalS (suc d) (Seq s1 s2) v =
+evalS (suc d) (var≔ t) v = just (evalT t v)
+evalS (suc d) (s1 // s2) v =
   evalS d s1 v >>= evalS d s2
-evalS (suc d) (While t s) v =
+evalS (suc d) (while[ t ] s) v =
   evalS-While d t s v (evalT t v)
 
 evalS-While d t s v VNil =
   just v
 
 evalS-While d t s v (VCons v1 v2) =
-  evalS d s v >>= evalS d (While t s)
+  evalS d s v >>= evalS d (while[ t ] s)
 
 evalS-While d t s v VBottom = just VBottom
 
@@ -302,23 +307,23 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
   helper : (s : Stmt) →
     evalS (suc i) s v ≡ just v′′ → evalS (suc j) s v ≡ just v′′
 
-  helper (Assign t) h′ = h′
+  helper (var≔ t) h′ = h′
 
-  helper (Seq s1 s2) h′ with evalS i s1 v | inspect (evalS i s1) v
-  helper (Seq s1 s2) h′ | just v′ | [ g₁ ]ⁱ
+  helper (s1 // s2) h′ with evalS i s1 v | inspect (evalS i s1) v
+  helper (s1 // s2) h′ | just v′ | [ g₁ ]ⁱ
     rewrite evalS-mono s1 i j (<′⇨≤′ m≤′n) v v′ g₁
     = evalS-mono s2 i j (<′⇨≤′ m≤′n) v′ v′′ h′
-  helper (Seq s1 s2) () | nothing | [ g₁ ]ⁱ
+  helper (s1 // s2) () | nothing | [ g₁ ]ⁱ
 
-  helper (While t s') h′ with evalT t v
-  helper (While t s') h′ | VNil = h′
-  helper (While t s') h′ | VCons v1 v2
+  helper (while[ t ] s') h′ with evalT t v
+  helper (while[ t ] s') h′ | VNil = h′
+  helper (while[ t ] s') h′ | VCons v1 v2
     with evalS i s' v | inspect (evalS i s') v
   ... | just v′ | [ g ]ⁱ
     rewrite evalS-mono s' i j (<′⇨≤′ m≤′n) v v′ g
-    = evalS-mono (While t s') i j (<′⇨≤′ m≤′n) v′ v′′ h′
-  helper (While t s') () | VCons v1 v2 | nothing | [ g ]ⁱ
-  helper (While t s') h′ | VBottom = h′
+    = evalS-mono (while[ t ] s') i j (<′⇨≤′ m≤′n) v′ v′′ h′
+  helper (while[ t ] s') () | VCons v1 v2 | nothing | [ g ]ⁱ
+  helper (while[ t ] s') h′ | VBottom = h′
 
 -- ⇓-⇒evalS
 
@@ -327,10 +332,10 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
     s ⊨ v ⇓ v′ →
     (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
 
-⇓-⇒evalS (Assign t) v .(evalT t v) ⇓-Assign =
+⇓-⇒evalS (var≔ t) v .(evalT t v) ⇓-var≔ =
   suc zero , refl
 
-⇓-⇒evalS (Seq s1 s2) v v′′ (⇓-Seq {v′ = v′} h₁ h₂)
+⇓-⇒evalS (s1 // s2) v v′′ (⇓-Seq {v′ = v′} h₁ h₂)
   with ⇓-⇒evalS s1 v v′ h₁ | ⇓-⇒evalS s2 v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
     evalS (i₁ ⊔ i₂) s1 v >>= evalS (i₁ ⊔ i₂) s2
@@ -342,7 +347,7 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (While t s) .v′′ v′′ (⇓-WhileNil ≡VNil) =
+⇓-⇒evalS (while[ t ] s) .v′′ v′′ (⇓-WhileNil ≡VNil) =
   suc zero , (begin
     evalS-While zero t s v′′ (evalT t v′′)
       ≡⟨ cong (evalS-While zero t s v′′) ≡VNil ⟩
@@ -350,7 +355,7 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (While t s) v .VBottom (⇓-WhileBottom ≡VBottom) =
+⇓-⇒evalS (while[ t ] s) v .VBottom (⇓-WhileBottom ≡VBottom) =
   suc zero , (begin
     evalS-While zero t s v (evalT t v)
       ≡⟨ cong (evalS-While zero t s v) ≡VBottom ⟩
@@ -358,17 +363,17 @@ evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (While t s) v v′′
+⇓-⇒evalS (while[ t ] s) v v′′
   (⇓-WhileCons {v′ = v′} ≡VCons h₁ h₂)
-  with ⇓-⇒evalS s v v′ h₁ | ⇓-⇒evalS (While t s) v′ v′′ h₂
+  with ⇓-⇒evalS s v v′ h₁ | ⇓-⇒evalS (while[ t ] s) v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
     evalS-While (i₁ ⊔ i₂) t s v (evalT t v)
       ≡⟨ cong (evalS-While (i₁ ⊔ i₂) t s v) ≡VCons ⟩
-    evalS (i₁ ⊔ i₂) s v >>= evalS (i₁ ⊔ i₂) (While t s)
-      ≡⟨ cong (flip _>>=_ (evalS (i₁ ⊔ i₂) (While t s)))
+    evalS (i₁ ⊔ i₂) s v >>= evalS (i₁ ⊔ i₂) (while[ t ] s)
+      ≡⟨ cong (flip _>>=_ (evalS (i₁ ⊔ i₂) (while[ t ] s)))
               (evalS-mono s i₁ (i₁ ⊔ i₂) (≤⇒≤′ (m≤m⊔n i₁ i₂)) v v′ g₁) ⟩
-    evalS (i₁ ⊔ i₂) (While t s) v′
-      ≡⟨ evalS-mono (While t s) i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
+    evalS (i₁ ⊔ i₂) (while[ t ] s) v′
+      ≡⟨ evalS-mono (while[ t ] s) i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
     just v′′
     ∎)
   where open ≡-Reasoning
@@ -382,47 +387,47 @@ evalS⇒-⇓ :
 
 evalS⇒-⇓ zero s v v′′ ()
 
-evalS⇒-⇓ (suc i) (Assign t) v .(evalT t v) refl =
-  ⇓-Assign
+evalS⇒-⇓ (suc i) (var≔ t) v .(evalT t v) refl =
+  ⇓-var≔
 
-evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ h
+evalS⇒-⇓ (suc i) (s1 // s2) v v′′ h
   with evalS i s1 v | inspect (evalS i s1) v
 
-evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ h
+evalS⇒-⇓ (suc i) (s1 // s2) v v′′ h
   | just v′ | [ g₁ ]ⁱ
   = ⇓-Seq (evalS⇒-⇓ i s1 v v′ g₁)
           (evalS⇒-⇓ i s2 v′ v′′ h)
 
-evalS⇒-⇓ (suc i) (Seq s1 s2) v v′′ ()
+evalS⇒-⇓ (suc i) (s1 // s2) v v′′ ()
   | nothing | [ g₁ ]ⁱ
 
-evalS⇒-⇓ (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
   with evalT t v | inspect (evalT t) v
 
-evalS⇒-⇓ (suc i) (While t s) .v′′ v′′ refl
+evalS⇒-⇓ (suc i) (while[ t ] s) .v′′ v′′ refl
   | VNil | [ f ]ⁱ =
   ⇓-WhileNil f
 
-evalS⇒-⇓ (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ
   with evalS i s v | inspect (evalS i s) v
 
-evalS⇒-⇓ (suc i) (While t s) v v′′ h
+evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ | just v′ | [ g ]ⁱ 
   = ⇓-WhileCons f (evalS⇒-⇓ i s v v′ g)
-                  (evalS⇒-⇓ i (While t s) v′ v′′ h)
+                  (evalS⇒-⇓ i (while[ t ] s) v′ v′′ h)
 
-evalS⇒-⇓ (suc i) (While t s) v v′′ ()
+evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ ()
   | VCons v1 v2 | [ f ]ⁱ | nothing | [ g ]ⁱ
 
-evalS⇒-⇓ (suc i) (While t s) v .VBottom refl | VBottom | [ f ]ⁱ =
+evalS⇒-⇓ (suc i) (while[ t ] s) v .VBottom refl | VBottom | [ f ]ⁱ =
   ⇓-WhileBottom f
 
 -- ⇓-⇔evalS
 
 ⇓-⇔evalS :
   ∀ {s v v′} →
-    s ⊨ v ⇓ v′ ⇔
+    (s ⊨ v ⇓ v′) ⇔
     (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
 
 ⇓-⇔evalS {s} {v} {v′} =
@@ -569,7 +574,7 @@ evalKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
 
 ⊨KNF⇔evalKNF :
   ∀ {knf v v′} →
-    knf ⊨KNF v ⇓ v′ ⇔
+    (knf ⊨KNF v ⇓ v′) ⇔
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
 
 ⊨KNF⇔evalKNF =

@@ -22,6 +22,9 @@ open import Util
 -- Simple expression language
 --
 
+infixr 5 _∷_
+infixr 6 _$$_
+
 data Val : Set where
   VNil : Val
   VCons : (v1 : Val) → (v2 : Val) → Val
@@ -32,13 +35,18 @@ data Selector : Set where
   TL : Selector
 
 data Trm : Set where
-  Nil    : Trm
-  Cons   : (t1 : Trm) → (t2 : Trm) → Trm 
+  []     : Trm
+  _∷_    : (t1 : Trm) → (t2 : Trm) → Trm 
   Sel    : (sel : Selector) → Trm
   Id     : Trm
-  Cmp    : (t1 : Trm) → (t2 : Trm) → Trm
+  _$$_   : (t1 : Trm) → (t2 : Trm) → Trm
   IfNil  : (t0 : Trm) → (t1 : Trm) → (t2 : Trm) → Trm
   Bottom : Trm
+
+-- Hd Tl
+
+Hd = Sel HD
+Tl = Sel TL
 
 -- evalSel
 
@@ -88,11 +96,11 @@ ifNil∘ifNil VBottom = refl
 
 evalT : (t : Trm) (v : Val) →  Val
 
-evalT Nil v = VNil
-evalT (Cons t1 t2) v = VCons (evalT t1 v) (evalT t2 v)
+evalT [] v = VNil
+evalT (t1 ∷ t2) v = VCons (evalT t1 v) (evalT t2 v)
 evalT (Sel sel) v = evalSel v sel
 evalT Id v = v
-evalT (Cmp t1 t2) v = evalT t1 (evalT t2 v)
+evalT (t1 $$ t2) v = evalT t1 (evalT t2 v)
 evalT (IfNil t0 t1 t2) v =
   ifNil (evalT t0 v) (evalT t1 v) (evalT t2 v) 
 evalT Bottom v = VBottom
@@ -101,7 +109,7 @@ evalT Bottom v = VBottom
 
 sel2trm : (t : Trm) → (sel : Selector) → Trm
 sel2trm Id sel = Sel sel
-sel2trm t sel = Cmp (Sel sel) t
+sel2trm t sel = Sel sel $$ t
 
 -- sels2trm
 
@@ -111,11 +119,11 @@ sels2trm sels = foldl sel2trm Id sels
 -- evalT∘sel2trm
 
 evalT∘sel2trm : ∀ t sel v → evalT (sel2trm t sel) v ≡ evalSel (evalT t v) sel
-evalT∘sel2trm Nil sel v = refl
-evalT∘sel2trm (Cons t1 t2) sel v = refl
+evalT∘sel2trm [] sel v = refl
+evalT∘sel2trm (t1 ∷ t2) sel v = refl
 evalT∘sel2trm (Sel sel) sel' v = refl
 evalT∘sel2trm Id sel v = refl
-evalT∘sel2trm (Cmp t1 t2) sel v = refl
+evalT∘sel2trm (t1 $$ t2) sel v = refl
 evalT∘sel2trm (IfNil t0 t1 t2) sel v = refl
 evalT∘sel2trm Bottom sel v = refl
 
@@ -133,7 +141,7 @@ evalT∘foldr (sel ∷ rsels) v =
       ≡⟨ refl ⟩
     evalT (sel2trm (foldr (flip sel2trm) Id rsels) sel) v
       ≡⟨ evalT∘sel2trm (foldr (flip sel2trm) Id rsels) sel v ⟩
-    evalT (Cmp (Sel sel) (foldr (flip sel2trm) Id rsels)) v
+    evalT (Sel sel $$ foldr (flip sel2trm) Id rsels) v
       ≡⟨ refl ⟩
     evalSel (evalT (foldr (flip sel2trm) Id rsels) v) sel
       ≡⟨ cong (flip evalSel sel) (evalT∘foldr rsels v) ⟩
@@ -214,8 +222,8 @@ data NTrm : Set where
 
 ntrm2trm : (nt : NTrm) → Trm
 
-ntrm2trm NNil = Nil
-ntrm2trm (NCons nt1 nt2) = Cons (ntrm2trm nt1) (ntrm2trm nt2)
+ntrm2trm NNil = []
+ntrm2trm (NCons nt1 nt2) = ntrm2trm nt1 ∷ ntrm2trm nt2
 ntrm2trm (NSelCmp sels) = sels2trm sels
 ntrm2trm (NIfNil sels nt1 nt2) =
   IfNil (sels2trm sels) (ntrm2trm nt1) (ntrm2trm nt2)
@@ -751,11 +759,11 @@ evalNT∘normNCmp NBottom nt2 v =
 
 normConv : (t : Trm) → NTrm
 
-normConv Nil = NNil
-normConv (Cons t1 t2) = NCons (normConv t1) (normConv t2)
+normConv [] = NNil
+normConv (t1 ∷ t2) = NCons (normConv t1) (normConv t2)
 normConv (Sel sel) = NSelCmp [ sel ]
 normConv Id = NSelCmp []
-normConv (Cmp t1 t2) = normNCmp (normConv t1) (normConv t2)
+normConv (t1 $$ t2) = normNCmp (normConv t1) (normConv t2)
 normConv (IfNil t0 t1 t2) = normNIf (normConv t0) (normConv t1) (normConv t2)
 normConv Bottom = NBottom
 
@@ -768,17 +776,17 @@ normConv Bottom = NBottom
 evalNT∘normConv : (t : Trm) (v : Val) →
   evalNT (normConv t) v ≡ evalT t v
 
-evalNT∘normConv Nil v =
+evalNT∘normConv [] v =
   refl
-evalNT∘normConv (Cons t1 t2) v
+evalNT∘normConv (t1 ∷ t2) v
   rewrite evalNT∘normConv t1 v | evalNT∘normConv t2 v
   = refl
 evalNT∘normConv (Sel sel) v =
   refl
 evalNT∘normConv Id v =
   refl
-evalNT∘normConv (Cmp t1 t2) v = begin
-  evalNT (normConv (Cmp t1 t2)) v
+evalNT∘normConv (t1 $$ t2) v = begin
+  evalNT (normConv (t1 $$ t2)) v
     ≡⟨ refl ⟩
   evalNT (normNCmp (normConv t1) (normConv t2)) v
     ≡⟨ evalNT∘normNCmp (normConv t1) (normConv t2) v ⟩
@@ -788,7 +796,7 @@ evalNT∘normConv (Cmp t1 t2) v = begin
     ≡⟨ evalNT∘normConv t1 (evalT t2 v) ⟩
   evalT t1 (evalT t2 v)
     ≡⟨ refl ⟩
-  evalT (Cmp t1 t2) v
+  evalT (t1 $$ t2) v
   ∎
 evalNT∘normConv (IfNil t0 t1 t2) v = begin
   evalNT (normConv (IfNil t0 t1 t2)) v

@@ -36,7 +36,7 @@ unrollToInit : KNFProg → KNFProg
 
 unrollToInit (KNF initExp condExp bodyExp finalExp) =
   KNF newInit condExp bodyExp finalExp
-  where newInit = ntrm2trm $ norm $ Cmp (IfNil condExp Id bodyExp) initExp
+  where newInit = ntrm2trm $ norm $ (IfNil condExp Id bodyExp) $$ initExp
 
 -----------------------------------
 -- Unrolling respects the semantics
@@ -196,7 +196,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 ⊨KNF-unrollToInit :
   ∀ {knf v v′} →
     strictTrm (condExp knf) →
-    knf ⊨KNF v ⇓ v′ ⇔ unrollToInit knf ⊨KNF v ⇓ v′
+    (knf ⊨KNF v ⇓ v′) ⇔ (unrollToInit knf ⊨KNF v ⇓ v′)
 
 ⊨KNF-unrollToInit hs =
   equivalence (⊨KNF-unrollToInit⇒ hs) (⊨KNF-unrollToInit⇐ hs)
