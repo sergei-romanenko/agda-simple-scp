@@ -70,10 +70,6 @@ data _⊴_ {V F : Set} : (t₁ t₂ : FOTerm V F) → Set where
     FOFun2 mf t₁ t₂ ⊴ t′₂ →
     FOFun2 mf t₁ t₂ ⊴ FOFun2 mg t′₁ t′₂
 
-postulate
-  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
-    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
-
 -- _⊴?_
 
 module ⊴-Decidable
@@ -154,11 +150,17 @@ module ⊴-Decidable
   firstEmbedded n s =
     find-in-list (λ i → isNthEmbeddedBelow i n s) (ℕ-seq zero n)
 
-  {-
-  firstEmbedded_total :
+{-
+postulate
+  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
+    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
+
+postulate
+  firstEmbedded_total {V F : Set} :
     (s : Sequence (FOTerm V F))→
       ∃₂ λ n m → firstEmbedded n s ≡ just m
-
+-}
+  {-
   firstEmbedded_total s with Kruskal s
   ... | i , j , i<j , si⊴sj = j , find-just {!!} {!!} {!!} {!!} {!!}
   -}
