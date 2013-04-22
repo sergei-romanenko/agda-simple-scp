@@ -193,6 +193,11 @@ KNFtoProg knf =
 strictTrm : Trm → Set
 strictTrm t = evalT t VBottom ≡ VBottom
 
+-- strictKNF
+
+strictKNF : KNFProg → Set
+strictKNF knf = strictTrm (condExp knf)
+
 -- The strictness of terms in normal form is decidable.
 
 -- strictNTrm

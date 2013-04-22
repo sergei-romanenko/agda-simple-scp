@@ -111,6 +111,7 @@ listHasWFalse-knf-negdupHd-scp :
 
 listHasWFalse-knf-negdupHd-scp = refl
 
+
 -- While the resulting program may not look simplified at first,
 -- if we remove by hand the second if-expression with equal branches,
 -- we can see that the loop will never be entered.

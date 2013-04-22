@@ -173,7 +173,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit⇒ :
   ∀ {knf v v′} →
-    strictTrm (condExp knf) →
+    strictKNF knf →
     knf ⊨KNF v ⇓ v′ → unrollToInit knf ⊨KNF v ⇓ v′
 
 ⊨KNF-unrollToInit⇒ hs (⇓-eval {init} {cond} {body} {final} {v} {v′} hw) =
@@ -184,7 +184,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit⇐ :
   ∀ {knf v v′} →
-    strictTrm (condExp knf) →
+    strictKNF knf →
     unrollToInit knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′
 
 ⊨KNF-unrollToInit⇐ {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw) =
@@ -195,7 +195,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit :
   ∀ {knf v v′} →
-    strictTrm (condExp knf) →
+    strictKNF knf →
     (knf ⊨KNF v ⇓ v′) ⇔ (unrollToInit knf ⊨KNF v ⇓ v′)
 
 ⊨KNF-unrollToInit hs =
