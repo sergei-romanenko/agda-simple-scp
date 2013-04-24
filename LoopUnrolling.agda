@@ -40,7 +40,7 @@ open import ImpLang
 
 ⊨KNF-unroller unroll =
   ∀ {knf v v′} →
-    strictKNF knf →
+    StrictKNF knf →
     (knf ⊨KNF v ⇓ v′) ⇔ (unroll knf ⊨KNF v ⇓ v′)
 
 -- unrollToInit
@@ -59,7 +59,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨While-unrollToInit⇒ :
   ∀  {cond e v v′} →
-    strictTrm cond →
+    StrictTrm cond →
     [ cond ] e ⊨While v ⇓ v′ →
     [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′
 
@@ -74,7 +74,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨While-unrollToInit⇐ :
   ∀  {cond e v v′} →
-    strictTrm cond →
+    StrictTrm cond →
     [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′ →
     [ cond ] e ⊨While v ⇓ v′
 
@@ -101,7 +101,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨While-unrollToInit :
   ∀ {cond e v v′} →
-    strictTrm cond →
+    StrictTrm cond →
     [ cond ] e ⊨While v ⇓ v′ ⇔
     [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′
 
@@ -161,7 +161,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit-lemma₂ :
   ∀ (init cond body final : Trm) (v v′ : Val) →
-    strictTrm cond →
+    StrictTrm cond →
     [ cond ] body ⊨While evalT init v ⇓ v′ ⇔
     [ cond ] body ⊨While
       evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
@@ -186,7 +186,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit⇒ :
   ∀ {knf v v′} →
-    strictKNF knf →
+    StrictKNF knf →
     knf ⊨KNF v ⇓ v′ → unrollToInit knf ⊨KNF v ⇓ v′
 
 ⊨KNF-unrollToInit⇒ hs (⇓-eval {init} {cond} {body} {final} {v} {v′} hw) =
@@ -197,7 +197,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit⇐ :
   ∀ {knf v v′} →
-    strictKNF knf →
+    StrictKNF knf →
     unrollToInit knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′
 
 ⊨KNF-unrollToInit⇐ {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw) =

@@ -14,8 +14,6 @@ open import Data.Product
 open import Data.Sum
 
 open import Function
-open import Function.Equality
-  using (_⟨$⟩_; module Π)
 open import Function.Equivalence as Equiv
   using (module Equivalence; _⇔_; equivalence)
 
@@ -113,7 +111,7 @@ sscpCore :
 sscpCore alwaysJust unroll n knf =
   maybe′ (just ∘′  knfs) nothing (whistle alwaysJust n knfs)
   where
-    knfs = iterate unroll knf
+    knfs = fold knf unroll
 
 -- sscp
 
@@ -160,7 +158,7 @@ sscpCore-total : ∀ b unroll knf →
 sscpCore-total b unroll knf =
   helper (whistle-total b knfs)
   where
-  knfs = iterate unroll knf
+  knfs = fold knf unroll
   helper : ∃₂ (λ n m → whistle b n knfs ≡ just m) →
            ∃₂ (λ (n : ℕ) (knf′ : KNFProg) →
              sscpCore b unroll n knf ≡ just knf′)
@@ -189,139 +187,121 @@ sscp-total b knf with sscpCore-total b unrollToInit knf
 -- Preservation of semantics is established through a sequence of lemmas,
 -- relying only on correctness of one-step loop unrolling.
 
--- condExp-unrollToInitSequence
+-- PreservesCond
+
+PreservesCond : (KNFProg → KNFProg) → Set
+PreservesCond unroll = ∀ knf → condExp (unroll knf) ≡ condExp knf
+
+-- unrolling-preserves-condExp
 
 unrolling-preserves-condExp :
-  ∀ {knf} n → condExp (iterate unrollToInit knf n) ≡ condExp knf
+  ∀ {unroll} → PreservesCond unroll →
+  ∀ {knf} n → condExp (fold knf unroll n) ≡ condExp knf
 
-unrolling-preserves-condExp zero =
-  refl
-unrolling-preserves-condExp (suc n) =
-  unrolling-preserves-condExp n
+unrolling-preserves-condExp pu zero = refl
+
+unrolling-preserves-condExp {unroll} unroll≡ {knf} (suc n) = begin
+  condExp (unroll (fold knf unroll n))
+    ≡⟨ unroll≡ (fold knf unroll n) ⟩
+  condExp (fold knf unroll n)
+    ≡⟨ unrolling-preserves-condExp unroll≡  n ⟩
+  condExp knf
+  ∎
+  where open ≡-Reasoning
 
 -- unrolling-preserves-Pcond
 
 unrolling-preserves-Pcond :
-  ∀ {knf} n {p} (P : Trm → Set p) →
+  ∀ {knf unroll} n →
+  PreservesCond unroll →
+  ∀ {p} (P : Trm → Set p) →
   P (condExp knf) →
-  P (condExp (iterate unrollToInit knf n))
+  P (condExp (fold knf unroll n))
 
-unrolling-preserves-Pcond {knf} n P =
+unrolling-preserves-Pcond  {knf} {unroll} n unroll≡ P =
   P (condExp knf)
-    ∼⟨ subst P (P.sym $ unrolling-preserves-condExp n) ⟩
-  P (condExp (iterate unrollToInit knf n))
+    ∼⟨ subst P (P.sym $ unrolling-preserves-condExp unroll≡ n) ⟩
+  P (condExp (fold knf unroll n))
   ∎
   where open Related.EquationalReasoning
 
--- ⊨KNF-unrollToInitSequence
+-- ⊨KNF-unrolling
 
-⊨KNF-unrollToInitSequence :
-  ∀ {knf v v′} n →
-  strictKNF knf →
+⊨KNF-unrolling :
+  ∀ {knf unroll v v′} n →
+  PreservesCond unroll →
+  StrictKNF knf →
+  ⊨KNF-unroller unroll →
   (knf ⊨KNF v ⇓ v′) ⇔
-  (iterate unrollToInit knf n ⊨KNF v ⇓ v′)
+  (fold knf unroll n ⊨KNF v ⇓ v′)
 
-⊨KNF-unrollToInitSequence zero hs =
+⊨KNF-unrolling zero pcond hs hu =
   Equiv.id
 
-⊨KNF-unrollToInitSequence {knf} {v} {v′} (suc n) hs =
+⊨KNF-unrolling  {knf} {unroll} {v} {v′} (suc n) pcond hs hu =
   knf ⊨KNF v ⇓ v′
-    ∼⟨ ⊨KNF-unrollToInitSequence n hs ⟩
-  iterate unrollToInit knf n ⊨KNF v ⇓ v′
-    ∼⟨ unrollToInit-is-⊨KNF-unroller
-       (unrolling-preserves-Pcond n strictTrm hs) ⟩
-  unrollToInit (iterate unrollToInit knf n) ⊨KNF v ⇓ v′
+    ∼⟨ ⊨KNF-unrolling n pcond hs hu ⟩
+  fold knf unroll n ⊨KNF v ⇓ v′
+    ∼⟨ hu (unrolling-preserves-Pcond n pcond StrictTrm hs) ⟩
+  unroll (fold knf unroll n) ⊨KNF v ⇓ v′
     ≡⟨ cong (λ z → z ⊨KNF v ⇓ v′) refl ⟩
-  iterate unrollToInit knf (suc n) ⊨KNF v ⇓ v′
+  fold knf unroll (suc n) ⊨KNF v ⇓ v′
   ∎
   where open Related.EquationalReasoning
 
--- evalKNF-unrollToInitSequence
+-- evalKNF-unrolling
 
-evalKNF-unrollToInitSequence :
-  ∀ knf v v′ n →
-  strictKNF knf →
+evalKNF-unrolling :
+  ∀ knf unroll v v′ n →
+  PreservesCond unroll →
+  StrictKNF knf →
+  ⊨KNF-unroller unroll →
   (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-  (∃ λ (i′ : ℕ) → evalKNF i′ (iterate unrollToInit knf n) v ≡ just v′)
+  (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll n) v ≡ just v′)
 
-evalKNF-unrollToInitSequence knf v v′ n  hs =
+evalKNF-unrolling knf unroll v v′ n pcond hs hu =
   (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
     ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
   knf ⊨KNF v ⇓ v′
-    ∼⟨ ⊨KNF-unrollToInitSequence n hs ⟩
-  iterate unrollToInit knf n ⊨KNF v ⇓ v′
+    ∼⟨ ⊨KNF-unrolling n pcond hs hu ⟩
+  fold knf unroll n ⊨KNF v ⇓ v′
     ∼⟨ ⊨KNF⇔evalKNF ⟩
-  (∃ λ (i′ : ℕ) → evalKNF i′ (iterate unrollToInit knf n) v ≡ just v′)
+  (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll n) v ≡ just v′)
   ∎
   where open Related.EquationalReasoning
 
--- sscpCore-⊎
+-- sscpCore-is-fold
 
-sscpCore-⊎ :
-  ∀ b unroll n knf →
-    (∃ λ m → sscpCore b unroll n knf ≡ just (iterate unroll knf m))
-      ⊎ (sscpCore b unroll n knf ≡ nothing)
-
-just≢nothing : ∀ {a} {A : Set a} {x : A} → (just x ∶ Maybe A) ≢ nothing 
-just≢nothing = λ ()
-
-sscpCore-⊎ b unroll n knf = helper
-  where
-  knfs = iterate unroll knf
-
-  helper :
-    (∃ λ m → sscpCore b unroll n knf ≡ just (knfs m))
-      ⊎ sscpCore b unroll n knf ≡ nothing
-  helper with whistle b n knfs
-  ... | just m  = inj₁ (m , refl)
-  ... | nothing = inj₂ refl
-
--- sscpCore-as-sequenceUnfold
-
-sscpCore-as-sequenceUnfold :
-  ∀ b unroll n knf knf′ →
+sscpCore-is-fold :
+  ∀ unroll b n knf knf′ →
     sscpCore b unroll n knf ≡ just knf′ →
-    ∃ λ m → knf′ ≡ iterate unroll knf m
+    ∃ λ m → knf′ ≡ fold knf unroll m
 
-sscpCore-as-sequenceUnfold b unroll n knf knf′ ≡knf′
-  with sscpCore-⊎ b unroll n knf
-... | inj₁ (m , ≡unfold) = m , just-injective just≡just
-  where
-  open ≡-Reasoning
-  just≡just = begin
-    just knf′
-      ≡⟨ P.sym ≡knf′ ⟩
-    sscpCore b unroll n knf
-      ≡⟨ ≡unfold ⟩
-    just (iterate unroll knf m)
-    ∎
+sscpCore-is-fold unroll b n knf knf′ ≡knf′
+  with whistle b n (fold knf unroll)
 
-... | inj₂ ≡nothing = ⊥-elim (just≢nothing just≡nothing)
-  where
-  open ≡-Reasoning
-  just≡nothing = begin
-    just knf′
-      ≡⟨ P.sym ≡knf′ ⟩
-    sscpCore b unroll n knf
-      ≡⟨ ≡nothing ⟩
-    nothing
-    ∎
+sscpCore-is-fold unroll b n knf knf′ ≡knf′ | just m =
+  m , just-injective (P.sym ≡knf′)
+
+sscpCore-is-fold unroll b n knf knf′ () | nothing
 
 -- sscpCore-correct
 
 sscpCore-correct :
-  ∀ b knf knf′ n v v′ →
-    strictKNF knf →
-    sscpCore b unrollToInit n knf ≡ just knf′ →
+  ∀ unroll b knf knf′ v v′ n →
+    PreservesCond unroll →
+    StrictKNF knf →
+    ⊨KNF-unroller unroll →
+    sscpCore b unroll n knf ≡ just knf′ →
       (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
       (∃ λ (i′ : ℕ) → evalKNF i′ knf′  v ≡ just v′)
 
-sscpCore-correct b knf knf′ n v v′ hs hc
-  with sscpCore-as-sequenceUnfold b unrollToInit n knf knf′ hc
+sscpCore-correct unroll b knf knf′ v v′ n pcond hs hu hc
+  with sscpCore-is-fold unroll b n knf knf′ hc
 ... | m , ≡unfold =
     (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
-      ∼⟨ evalKNF-unrollToInitSequence knf v v′ m hs ⟩
-    (∃ λ (i′ : ℕ) → evalKNF i′ (iterate unrollToInit knf m) v ≡ just v′)
+      ∼⟨ evalKNF-unrolling knf unroll v v′ m pcond hs hu ⟩
+    (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll m) v ≡ just v′)
       ≡⟨ cong (λ z → ∃ (λ (i′ : ℕ) → evalKNF i′ z v ≡ just v′))
               (P.sym $ ≡unfold) ⟩
     (∃ λ (i′ : ℕ) → evalKNF i′ knf′ v ≡ just v′)
@@ -332,12 +312,13 @@ sscpCore-correct b knf knf′ n v v′ hs hc
 
 sscp-correct :
   ∀ b knf knf′ n v v′ → 
-    strictKNF knf →
+    StrictKNF knf →
     sscp b n knf ≡ just knf′ →
       (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
       (∃ λ (i′ : ℕ) → evalKNF i′ knf′  v ≡ just v′)
 
 sscp-correct b knf knf′ n v v′ hs hc =
-  sscpCore-correct b knf knf′ n v v′ hs hc
+  sscpCore-correct unrollToInit b knf knf′ v v′ n
+                   (λ knf' → refl) hs unrollToInit-is-⊨KNF-unroller hc
 
 --

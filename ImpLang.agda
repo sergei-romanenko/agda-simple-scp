@@ -190,24 +190,24 @@ KNFtoProg knf =
 
 -- strictTrm
 
-strictTrm : Trm → Set
-strictTrm t = evalT t VBottom ≡ VBottom
+StrictTrm : Trm → Set
+StrictTrm t = evalT t VBottom ≡ VBottom
 
 -- strictKNF
 
-strictKNF : KNFProg → Set
-strictKNF knf = strictTrm (condExp knf)
+StrictKNF : KNFProg → Set
+StrictKNF knf = StrictTrm (condExp knf)
 
 -- The strictness of terms in normal form is decidable.
 
 -- strictNTrm
 
-strictNTrm : NTrm → Set
-strictNTrm nt = evalNT nt VBottom ≡ VBottom
+StrictNTrm : NTrm → Set
+StrictNTrm nt = evalNT nt VBottom ≡ VBottom
 
 -- strictNTrm?
 
-strictNTrm? : (nt : NTrm) → Dec (strictNTrm nt)
+strictNTrm? : (nt : NTrm) → Dec (StrictNTrm nt)
 
 strictNTrm? NNil = no (λ ())
 
@@ -242,7 +242,7 @@ strictNTrm? NBottom = yes refl
 
 -- strictTrm?
 
-strictTrm? : (t : Trm) → Dec (strictTrm t)
+strictTrm? : (t : Trm) → Dec (StrictTrm t)
 strictTrm? t
   rewrite P.sym $ evalNT∘normConv t VBottom
   = strictNTrm? (normConv t)

@@ -104,9 +104,6 @@ foldl⇒foldr-reverse f n (x ∷ xs) =
 Sequence : Set → Set
 Sequence A = ℕ → A
 
-iterate :  {A : Set} (f : A → A) (seed : A) → Sequence A
-iterate = flip fold
-
 ℕ-seq : (k l : ℕ) → List ℕ
 ℕ-seq k zero = []
 ℕ-seq k (suc l) = k ∷ ℕ-seq (suc k) l
