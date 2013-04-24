@@ -104,12 +104,8 @@ foldl⇒foldr-reverse f n (x ∷ xs) =
 Sequence : Set → Set
 Sequence A = ℕ → A
 
-sequenceMap : {A B : Set} (f : A → B) (s : Sequence A) → Sequence B
-sequenceMap f s = λ (n : ℕ) → f (s n)
-
-sequenceUnfold :  {A : Set} (seed : A) (f : A → A) → Sequence A
-sequenceUnfold seed f zero = seed
-sequenceUnfold seed f (suc n) = f (sequenceUnfold seed f n)
+iterate :  {A : Set} (f : A → A) (seed : A) → Sequence A
+iterate = flip fold
 
 ℕ-seq : (k l : ℕ) → List ℕ
 ℕ-seq k zero = []

@@ -150,19 +150,4 @@ module ⊴-Decidable
   firstEmbedded n s =
     find-in-list (λ i → isNthEmbeddedBelow i n s) (ℕ-seq zero n)
 
-{-
-postulate
-  Kruskal : {V F : Set} (s : Sequence (FOTerm V F)) →
-    ∃₂ λ (i j : ℕ) → i < j × (s i ⊴ s j)
-
-postulate
-  firstEmbedded_total {V F : Set} :
-    (s : Sequence (FOTerm V F))→
-      ∃₂ λ n m → firstEmbedded n s ≡ just m
--}
-  {-
-  firstEmbedded_total s with Kruskal s
-  ... | i , j , i<j , si⊴sj = j , find-just {!!} {!!} {!!} {!!} {!!}
-  -}
-
 --

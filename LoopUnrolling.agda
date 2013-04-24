@@ -30,6 +30,19 @@ open import ExpLang
 open import PositiveInfo
 open import ImpLang
 
+--
+-- ⊨KNF-unroller
+--
+
+-- TODO: `unrollToInit` might be abstracted away from some theorems...
+
+⊨KNF-unroller : (KNFProg → KNFProg) → Set
+
+⊨KNF-unroller unroll =
+  ∀ {knf v v′} →
+    strictKNF knf →
+    (knf ⊨KNF v ⇓ v′) ⇔ (unroll knf ⊨KNF v ⇓ v′)
+
 -- unrollToInit
 
 unrollToInit : KNFProg → KNFProg
@@ -120,7 +133,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
   evalNT (propagateIfCond
     (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
               (normConv init))) v
-    ≡⟨ evalNT∘propagateIfCond 
+    ≡⟨ evalNT∘propagateIfCond
        (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
                  (normConv init)) v ⟩
   evalNT (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
@@ -191,32 +204,10 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
   ⇓-eval (Equivalence.from
            (⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs) ⟨$⟩ hw)
 
--- ⊨KNF-unrollToInit
+-- unrollToInit-is-⊨KNF-unroller
 
-⊨KNF-unrollToInit :
-  ∀ {knf v v′} →
-    strictKNF knf →
-    (knf ⊨KNF v ⇓ v′) ⇔ (unrollToInit knf ⊨KNF v ⇓ v′)
-
-⊨KNF-unrollToInit hs =
+unrollToInit-is-⊨KNF-unroller : ⊨KNF-unroller unrollToInit
+unrollToInit-is-⊨KNF-unroller hs = 
   equivalence (⊨KNF-unrollToInit⇒ hs) (⊨KNF-unrollToInit⇐ hs)
-
--- evalKNF-unrollToInit
-
-evalKNF-unrollToInit :
-  ∀ knf v v′ → strictTrm (condExp knf) →
-    (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-    (∃ λ (i′ : ℕ) → evalKNF i′ (unrollToInit knf) v ≡ just v′)
-
-evalKNF-unrollToInit knf v v′ hs =
-  (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
-    ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
-  knf ⊨KNF v ⇓ v′
-    ∼⟨ ⊨KNF-unrollToInit hs ⟩
-  unrollToInit knf ⊨KNF v ⇓ v′
-    ∼⟨ ⊨KNF⇔evalKNF ⟩
-  (∃ λ (i′ : ℕ) → evalKNF i′ (unrollToInit knf) v ≡ just v′)
-  ∎
-  where open Related.EquationalReasoning
 
 --
