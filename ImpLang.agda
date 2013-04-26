@@ -209,7 +209,7 @@ StrictNTrm nt = ⟦⌈_⌉⟧ nt VBottom ≡ VBottom
 
 strictNTrm? : (nt : NTrm) → Dec (StrictNTrm nt)
 
-strictNTrm? NNil = no (λ ())
+strictNTrm? []ⁿ = no (λ ())
 
 strictNTrm? (nt1 ∷ⁿ nt2) = no (λ ())
 
@@ -218,24 +218,24 @@ strictNTrm? (NSelCmp sels) = yes $ begin
     ≡⟨ refl ⟩
   ⟦_⟧ (sels2trm sels) VBottom
     ≡⟨ ⟦⟧∘sels2trm sels VBottom ⟩
-  evalSels VBottom sels
-    ≡⟨ evalSels-VBottom sels ⟩
+  _!!_ VBottom sels
+    ≡⟨ !!-VBottom sels ⟩
   VBottom
   ∎
   where open ≡-Reasoning
 
-strictNTrm? (NIfNil sels nt1 nt2) = yes $ begin
+strictNTrm? (IfNilⁿ sels nt1 nt2) = yes $ begin
   ifNil (⟦_⟧ (sels2trm sels) VBottom)
         (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
     ≡⟨ ifNil-cong (⟦⟧∘sels2trm sels VBottom) refl refl ⟩
-  ifNil (evalSels VBottom sels)
+  ifNil (_!!_ VBottom sels)
         (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
-    ≡⟨ ifNil-cong (evalSels-VBottom sels) refl refl ⟩
+    ≡⟨ ifNil-cong (!!-VBottom sels) refl refl ⟩
   VBottom
   ∎
   where open ≡-Reasoning
 
-strictNTrm? NBottom = yes refl
+strictNTrm? ↯ⁿ = yes refl
 
 -- The strictness of terms in normal form is decidable.
 -- We just normalize the term and then apply `strictNTrm?`.
