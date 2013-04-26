@@ -132,7 +132,7 @@ unrollToInit′ : KNFProg → KNFProg
 unrollToInit′ (KNF init cond body final) =
   KNF newInit cond body final
   where
-    nrm = λ (t : Trm) → ntrm2trm (normConv t)
+    nrm = λ (t : Trm) → ⌈ normConv t ⌉
     newInit = nrm ((IfNil cond Id body) $$ init)
 
 -- sscp′

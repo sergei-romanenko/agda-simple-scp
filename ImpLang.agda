@@ -51,22 +51,22 @@ infix 3 _⊨_⇓_
 
 data _⊨_⇓_ : Stmt → Val → Val → Set where
   ⇓-var≔ :
-    ∀ {t v} → var≔ t ⊨ v ⇓ (evalT t v) 
+    ∀ {t v} → var≔ t ⊨ v ⇓ (⟦_⟧ t v) 
   ⇓-Seq :
     ∀ {s1 s2 v v′ v′′} →
     s1 ⊨ v ⇓ v′ → s2 ⊨ v′ ⇓ v′′ →
     s1 // s2 ⊨ v ⇓ v′′
   ⇓-WhileNil :
     ∀ {cond s v} →
-    evalT cond v ≡ VNil →
+    ⟦_⟧ cond v ≡ VNil →
     while[ cond ] s ⊨ v ⇓ v
   ⇓-WhileBottom :
     ∀ {cond s v} →
-    evalT cond v ≡ VBottom →
+    ⟦_⟧ cond v ≡ VBottom →
     while[ cond ] s ⊨ v ⇓ VBottom
   ⇓-WhileCons :
     ∀ {cond s v v′ v′′ vh vt} →
-    evalT cond v ≡ VCons vh vt →
+    ⟦_⟧ cond v ≡ VCons vh vt →
     s ⊨ v ⇓ v′ → while[ cond ] s ⊨ v′ ⇓ v′′ →
     while[ cond ] s ⊨ v ⇓ v′′
 
@@ -93,16 +93,16 @@ infix 4 [_]_⊨While_⇓_
 data [_]_⊨While_⇓_ : Trm → Trm → Val → Val → Set where
   ⇓-WhileNil :
     ∀ {cond e v} →
-    (≡VNil : evalT cond v ≡ VNil) →
+    (≡VNil : ⟦_⟧ cond v ≡ VNil) →
     [ cond ] e ⊨While v ⇓ v    
   ⇓-WhileBottom :
     ∀ {cond e v} →
-    (≡VBottom : evalT cond v ≡ VBottom) →
+    (≡VBottom : ⟦_⟧ cond v ≡ VBottom) →
     [ cond ] e ⊨While v ⇓ VBottom
   ⇓-WhileCons :
     ∀ {cond e v v′ vh vt} →
-    (≡VCons : evalT cond v ≡ VCons vh vt) →
-    (h : [ cond ] e ⊨While evalT e v ⇓ v′) →
+    (≡VCons : ⟦_⟧ cond v ≡ VCons vh vt) →
+    (h : [ cond ] e ⊨While ⟦_⟧ e v ⇓ v′) →
     [ cond ] e ⊨While v ⇓ v′
 
 infix 3 _⊨KNF_⇓_
@@ -110,8 +110,8 @@ infix 3 _⊨KNF_⇓_
 data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
   ⇓-eval :
     ∀ {init cond body final v v′} →
-      [ cond ] body ⊨While (evalT init v) ⇓ v′ →
-      KNF init cond body final ⊨KNF v ⇓ evalT final v′
+      [ cond ] body ⊨While (⟦_⟧ init v) ⇓ v′ →
+      KNF init cond body final ⊨KNF v ⇓ ⟦_⟧ final v′
 
 -- KNFtoProg
 
@@ -191,7 +191,7 @@ KNFtoProg knf =
 -- strictTrm
 
 StrictTrm : Trm → Set
-StrictTrm t = evalT t VBottom ≡ VBottom
+StrictTrm t = ⟦_⟧ t VBottom ≡ VBottom
 
 -- strictKNF
 
@@ -203,7 +203,7 @@ StrictKNF knf = StrictTrm (condExp knf)
 -- strictNTrm
 
 StrictNTrm : NTrm → Set
-StrictNTrm nt = evalNT nt VBottom ≡ VBottom
+StrictNTrm nt = ⟦⌈_⌉⟧ nt VBottom ≡ VBottom
 
 -- strictNTrm?
 
@@ -211,13 +211,13 @@ strictNTrm? : (nt : NTrm) → Dec (StrictNTrm nt)
 
 strictNTrm? NNil = no (λ ())
 
-strictNTrm? (NCons nt1 nt2) = no (λ ())
+strictNTrm? (nt1 ∷ⁿ nt2) = no (λ ())
 
 strictNTrm? (NSelCmp sels) = yes $ begin
-  evalNT (NSelCmp sels) VBottom
+  ⟦⌈_⌉⟧ (NSelCmp sels) VBottom
     ≡⟨ refl ⟩
-  evalT (sels2trm sels) VBottom
-    ≡⟨ evalT∘sels2trm sels VBottom ⟩
+  ⟦_⟧ (sels2trm sels) VBottom
+    ≡⟨ ⟦⟧∘sels2trm sels VBottom ⟩
   evalSels VBottom sels
     ≡⟨ evalSels-VBottom sels ⟩
   VBottom
@@ -225,11 +225,11 @@ strictNTrm? (NSelCmp sels) = yes $ begin
   where open ≡-Reasoning
 
 strictNTrm? (NIfNil sels nt1 nt2) = yes $ begin
-  ifNil (evalT (sels2trm sels) VBottom)
-        (evalNT nt1 VBottom) (evalNT nt2 VBottom)
-    ≡⟨ ifNil-cong (evalT∘sels2trm sels VBottom) refl refl ⟩
+  ifNil (⟦_⟧ (sels2trm sels) VBottom)
+        (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
+    ≡⟨ ifNil-cong (⟦⟧∘sels2trm sels VBottom) refl refl ⟩
   ifNil (evalSels VBottom sels)
-        (evalNT nt1 VBottom) (evalNT nt2 VBottom)
+        (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
     ≡⟨ ifNil-cong (evalSels-VBottom sels) refl refl ⟩
   VBottom
   ∎
@@ -244,7 +244,7 @@ strictNTrm? NBottom = yes refl
 
 strictTrm? : (t : Trm) → Dec (StrictTrm t)
 strictTrm? t
-  rewrite P.sym $ evalNT∘normConv t VBottom
+  rewrite P.sym $ ⟦⌈⌉⟧∘normConv t VBottom
   = strictNTrm? (normConv t)
 
 ----------------------------------------------------------
@@ -259,26 +259,26 @@ _>>=_ : (v? : Maybe Val) → (f : Val → Maybe Val) → Maybe Val
 just v  >>= f = f v
 nothing >>= f = nothing
 
--- evalS
+-- exec
 
-evalS : (d : ℕ) (s : Stmt) (v : Val) → Maybe Val
-evalS-While :
+exec : (d : ℕ) (s : Stmt) (v : Val) → Maybe Val
+exec-While :
   (d : ℕ) (t : Trm) (s : Stmt) (v : Val) (r : Val) → Maybe Val
 
-evalS zero s v = nothing
-evalS (suc d) (var≔ t) v = just (evalT t v)
-evalS (suc d) (s1 // s2) v =
-  evalS d s1 v >>= evalS d s2
-evalS (suc d) (while[ t ] s) v =
-  evalS-While d t s v (evalT t v)
+exec zero s v = nothing
+exec (suc d) (var≔ t) v = just (⟦_⟧ t v)
+exec (suc d) (s1 // s2) v =
+  exec d s1 v >>= exec d s2
+exec (suc d) (while[ t ] s) v =
+  exec-While d t s v (⟦_⟧ t v)
 
-evalS-While d t s v VNil =
+exec-While d t s v VNil =
   just v
 
-evalS-While d t s v (VCons v1 v2) =
-  evalS d s v >>= evalS d (while[ t ] s)
+exec-While d t s v (VCons v1 v2) =
+  exec d s v >>= exec d (while[ t ] s)
 
-evalS-While d t s v VBottom = just VBottom
+exec-While d t s v VBottom = just VBottom
 
 -----------------------------------------------------
 -- The executable interpreter is correct with respect
@@ -296,148 +296,148 @@ n≤m⊔n m n = subst (_≤_ n) (+-comm _ m) (m≤m⊔n _ _)
   where
   open IsCommutativeSemiringWithoutOne ⊔-⊓-0-isCommutativeSemiringWithoutOne
 
--- evalS-mono
+-- exec-mono
 
-evalS-mono : (s : Stmt) (i j : ℕ) → i ≤′ j → (v v′ : Val) →
-    evalS i s v ≡ just v′ → evalS j s v ≡ just v′
+exec-mono : (s : Stmt) (i j : ℕ) → i ≤′ j → (v v′ : Val) →
+    exec i s v ≡ just v′ → exec j s v ≡ just v′
 
-evalS-mono s zero j i≤′j v v′ ()
+exec-mono s zero j i≤′j v v′ ()
 
-evalS-mono s (suc i) zero () v v′ h
+exec-mono s (suc i) zero () v v′ h
 
-evalS-mono s (suc .j) (suc j) ≤′-refl v v′ h = h
+exec-mono s (suc .j) (suc j) ≤′-refl v v′ h = h
 
-evalS-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
+exec-mono s (suc i) (suc j) (≤′-step m≤′n) v v′′ h = helper s h
   where
   helper : (s : Stmt) →
-    evalS (suc i) s v ≡ just v′′ → evalS (suc j) s v ≡ just v′′
+    exec (suc i) s v ≡ just v′′ → exec (suc j) s v ≡ just v′′
 
   helper (var≔ t) h′ = h′
 
-  helper (s1 // s2) h′ with evalS i s1 v | inspect (evalS i s1) v
+  helper (s1 // s2) h′ with exec i s1 v | inspect (exec i s1) v
   helper (s1 // s2) h′ | just v′ | [ g₁ ]ⁱ
-    rewrite evalS-mono s1 i j (<′⇨≤′ m≤′n) v v′ g₁
-    = evalS-mono s2 i j (<′⇨≤′ m≤′n) v′ v′′ h′
+    rewrite exec-mono s1 i j (<′⇨≤′ m≤′n) v v′ g₁
+    = exec-mono s2 i j (<′⇨≤′ m≤′n) v′ v′′ h′
   helper (s1 // s2) () | nothing | [ g₁ ]ⁱ
 
-  helper (while[ t ] s') h′ with evalT t v
+  helper (while[ t ] s') h′ with ⟦_⟧ t v
   helper (while[ t ] s') h′ | VNil = h′
   helper (while[ t ] s') h′ | VCons v1 v2
-    with evalS i s' v | inspect (evalS i s') v
+    with exec i s' v | inspect (exec i s') v
   ... | just v′ | [ g ]ⁱ
-    rewrite evalS-mono s' i j (<′⇨≤′ m≤′n) v v′ g
-    = evalS-mono (while[ t ] s') i j (<′⇨≤′ m≤′n) v′ v′′ h′
+    rewrite exec-mono s' i j (<′⇨≤′ m≤′n) v v′ g
+    = exec-mono (while[ t ] s') i j (<′⇨≤′ m≤′n) v′ v′′ h′
   helper (while[ t ] s') () | VCons v1 v2 | nothing | [ g ]ⁱ
   helper (while[ t ] s') h′ | VBottom = h′
 
--- ⇓-⇒evalS
+-- ⇓-⇒exec
 
-⇓-⇒evalS :
+⇓-⇒exec :
   ∀ s v v′ →
     s ⊨ v ⇓ v′ →
-    (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
+    (∃ λ (i : ℕ) → exec i s v ≡ just v′)
 
-⇓-⇒evalS (var≔ t) v .(evalT t v) ⇓-var≔ =
+⇓-⇒exec (var≔ t) v .(⟦_⟧ t v) ⇓-var≔ =
   suc zero , refl
 
-⇓-⇒evalS (s1 // s2) v v′′ (⇓-Seq {v′ = v′} h₁ h₂)
-  with ⇓-⇒evalS s1 v v′ h₁ | ⇓-⇒evalS s2 v′ v′′ h₂
+⇓-⇒exec (s1 // s2) v v′′ (⇓-Seq {v′ = v′} h₁ h₂)
+  with ⇓-⇒exec s1 v v′ h₁ | ⇓-⇒exec s2 v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
-    evalS (i₁ ⊔ i₂) s1 v >>= evalS (i₁ ⊔ i₂) s2
-      ≡⟨ cong (flip _>>=_ (evalS (i₁ ⊔ i₂) s2))
-              (evalS-mono s1 i₁ (i₁ ⊔ i₂) (≤⇒≤′ (m≤m⊔n i₁ i₂)) v v′ g₁) ⟩
-    evalS (i₁ ⊔ i₂) s2 v′
-      ≡⟨ evalS-mono s2 i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
+    exec (i₁ ⊔ i₂) s1 v >>= exec (i₁ ⊔ i₂) s2
+      ≡⟨ cong (flip _>>=_ (exec (i₁ ⊔ i₂) s2))
+              (exec-mono s1 i₁ (i₁ ⊔ i₂) (≤⇒≤′ (m≤m⊔n i₁ i₂)) v v′ g₁) ⟩
+    exec (i₁ ⊔ i₂) s2 v′
+      ≡⟨ exec-mono s2 i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
     just v′′
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (while[ t ] s) .v′′ v′′ (⇓-WhileNil ≡VNil) =
+⇓-⇒exec (while[ t ] s) .v′′ v′′ (⇓-WhileNil ≡VNil) =
   suc zero , (begin
-    evalS-While zero t s v′′ (evalT t v′′)
-      ≡⟨ cong (evalS-While zero t s v′′) ≡VNil ⟩
+    exec-While zero t s v′′ (⟦_⟧ t v′′)
+      ≡⟨ cong (exec-While zero t s v′′) ≡VNil ⟩
     just v′′
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (while[ t ] s) v .VBottom (⇓-WhileBottom ≡VBottom) =
+⇓-⇒exec (while[ t ] s) v .VBottom (⇓-WhileBottom ≡VBottom) =
   suc zero , (begin
-    evalS-While zero t s v (evalT t v)
-      ≡⟨ cong (evalS-While zero t s v) ≡VBottom ⟩
+    exec-While zero t s v (⟦_⟧ t v)
+      ≡⟨ cong (exec-While zero t s v) ≡VBottom ⟩
     just VBottom
     ∎)
   where open ≡-Reasoning
 
-⇓-⇒evalS (while[ t ] s) v v′′
+⇓-⇒exec (while[ t ] s) v v′′
   (⇓-WhileCons {v′ = v′} ≡VCons h₁ h₂)
-  with ⇓-⇒evalS s v v′ h₁ | ⇓-⇒evalS (while[ t ] s) v′ v′′ h₂
+  with ⇓-⇒exec s v v′ h₁ | ⇓-⇒exec (while[ t ] s) v′ v′′ h₂
 ... | i₁ , g₁ | i₂ , g₂ = suc (i₁ ⊔ i₂) , (begin
-    evalS-While (i₁ ⊔ i₂) t s v (evalT t v)
-      ≡⟨ cong (evalS-While (i₁ ⊔ i₂) t s v) ≡VCons ⟩
-    evalS (i₁ ⊔ i₂) s v >>= evalS (i₁ ⊔ i₂) (while[ t ] s)
-      ≡⟨ cong (flip _>>=_ (evalS (i₁ ⊔ i₂) (while[ t ] s)))
-              (evalS-mono s i₁ (i₁ ⊔ i₂) (≤⇒≤′ (m≤m⊔n i₁ i₂)) v v′ g₁) ⟩
-    evalS (i₁ ⊔ i₂) (while[ t ] s) v′
-      ≡⟨ evalS-mono (while[ t ] s) i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
+    exec-While (i₁ ⊔ i₂) t s v (⟦_⟧ t v)
+      ≡⟨ cong (exec-While (i₁ ⊔ i₂) t s v) ≡VCons ⟩
+    exec (i₁ ⊔ i₂) s v >>= exec (i₁ ⊔ i₂) (while[ t ] s)
+      ≡⟨ cong (flip _>>=_ (exec (i₁ ⊔ i₂) (while[ t ] s)))
+              (exec-mono s i₁ (i₁ ⊔ i₂) (≤⇒≤′ (m≤m⊔n i₁ i₂)) v v′ g₁) ⟩
+    exec (i₁ ⊔ i₂) (while[ t ] s) v′
+      ≡⟨ exec-mono (while[ t ] s) i₂ (i₁ ⊔ i₂) (≤⇒≤′ (n≤m⊔n i₁ i₂)) v′ v′′ g₂ ⟩
     just v′′
     ∎)
   where open ≡-Reasoning
 
--- evalS⇒-⇓
+-- exec⇒-⇓
 
-evalS⇒-⇓ :
+exec⇒-⇓ :
   ∀ i s v v′ →
-    evalS i s v ≡ just v′ →
+    exec i s v ≡ just v′ →
     s ⊨ v ⇓ v′
 
-evalS⇒-⇓ zero s v v′′ ()
+exec⇒-⇓ zero s v v′′ ()
 
-evalS⇒-⇓ (suc i) (var≔ t) v .(evalT t v) refl =
+exec⇒-⇓ (suc i) (var≔ t) v .(⟦_⟧ t v) refl =
   ⇓-var≔
 
-evalS⇒-⇓ (suc i) (s1 // s2) v v′′ h
-  with evalS i s1 v | inspect (evalS i s1) v
+exec⇒-⇓ (suc i) (s1 // s2) v v′′ h
+  with exec i s1 v | inspect (exec i s1) v
 
-evalS⇒-⇓ (suc i) (s1 // s2) v v′′ h
+exec⇒-⇓ (suc i) (s1 // s2) v v′′ h
   | just v′ | [ g₁ ]ⁱ
-  = ⇓-Seq (evalS⇒-⇓ i s1 v v′ g₁)
-          (evalS⇒-⇓ i s2 v′ v′′ h)
+  = ⇓-Seq (exec⇒-⇓ i s1 v v′ g₁)
+          (exec⇒-⇓ i s2 v′ v′′ h)
 
-evalS⇒-⇓ (suc i) (s1 // s2) v v′′ ()
+exec⇒-⇓ (suc i) (s1 // s2) v v′′ ()
   | nothing | [ g₁ ]ⁱ
 
-evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
-  with evalT t v | inspect (evalT t) v
+exec⇒-⇓ (suc i) (while[ t ] s) v v′′ h
+  with ⟦_⟧ t v | inspect (⟦_⟧ t) v
 
-evalS⇒-⇓ (suc i) (while[ t ] s) .v′′ v′′ refl
+exec⇒-⇓ (suc i) (while[ t ] s) .v′′ v′′ refl
   | VNil | [ f ]ⁱ =
   ⇓-WhileNil f
 
-evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
+exec⇒-⇓ (suc i) (while[ t ] s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ
-  with evalS i s v | inspect (evalS i s) v
+  with exec i s v | inspect (exec i s) v
 
-evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ h
+exec⇒-⇓ (suc i) (while[ t ] s) v v′′ h
   | VCons v1 v2 | [ f ]ⁱ | just v′ | [ g ]ⁱ 
-  = ⇓-WhileCons f (evalS⇒-⇓ i s v v′ g)
-                  (evalS⇒-⇓ i (while[ t ] s) v′ v′′ h)
+  = ⇓-WhileCons f (exec⇒-⇓ i s v v′ g)
+                  (exec⇒-⇓ i (while[ t ] s) v′ v′′ h)
 
-evalS⇒-⇓ (suc i) (while[ t ] s) v v′′ ()
+exec⇒-⇓ (suc i) (while[ t ] s) v v′′ ()
   | VCons v1 v2 | [ f ]ⁱ | nothing | [ g ]ⁱ
 
-evalS⇒-⇓ (suc i) (while[ t ] s) v .VBottom refl | VBottom | [ f ]ⁱ =
+exec⇒-⇓ (suc i) (while[ t ] s) v .VBottom refl | VBottom | [ f ]ⁱ =
   ⇓-WhileBottom f
 
--- ⇓-⇔evalS
+-- ⇓-⇔exec
 
-⇓-⇔evalS :
+⇓-⇔exec :
   ∀ {s v v′} →
     (s ⊨ v ⇓ v′) ⇔
-    (∃ λ (i : ℕ) → evalS i s v ≡ just v′)
+    (∃ λ (i : ℕ) → exec i s v ≡ just v′)
 
-⇓-⇔evalS {s} {v} {v′} =
-  equivalence (⇓-⇒evalS s v v′)
-              (λ {(i , h) → evalS⇒-⇓ i s v v′ h})
+⇓-⇔exec {s} {v} {v′} =
+  equivalence (⇓-⇒exec s v v′)
+              (λ {(i , h) → exec⇒-⇓ i s v v′ h})
 
 
 ----------------------------------------------------------
@@ -454,13 +454,13 @@ evalKNFCore′ : (i : ℕ) (cond e : Trm) (v : Val) (r : Val) → Maybe Val
 evalKNFCore zero cond e v = nothing
 
 evalKNFCore (suc i) cond e v =
-  evalKNFCore′ i cond e v (evalT cond v)
+  evalKNFCore′ i cond e v (⟦_⟧ cond v)
 
 evalKNFCore′ i cond e v VNil =
   just v
 
 evalKNFCore′ i cond e v (VCons v1 v2) =
-  evalKNFCore i cond e (evalT e v)
+  evalKNFCore i cond e (⟦_⟧ e v)
 
 evalKNFCore′ i cond e v VBottom =
   just VBottom
@@ -471,9 +471,9 @@ evalKNF : (i : ℕ) (knf : KNFProg) (v : Val) → Maybe Val
 evalKNF′ : (finalExp : Trm) (r : Maybe Val) → Maybe Val
 
 evalKNF i (KNF initExp condExp bodyExp finalExp) v =
-  evalKNF′ finalExp (evalKNFCore i condExp bodyExp (evalT initExp v))
+  evalKNF′ finalExp (evalKNFCore i condExp bodyExp (⟦_⟧ initExp v))
 
-evalKNF′ finalExp (just v′) = just (evalT finalExp v′)
+evalKNF′ finalExp (just v′) = just (⟦_⟧ finalExp v′)
 evalKNF′ finalExp nothing = nothing
 
 
@@ -491,7 +491,7 @@ evalKNF′ finalExp nothing = nothing
 
 ⊨While⇒evalKNFCore (⇓-WhileNil {cond} {e} {v} ≡VNil) =
   suc zero , (begin
-  evalKNFCore′ 0 cond e v (evalT cond v)
+  evalKNFCore′ 0 cond e v (⟦_⟧ cond v)
     ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VNil ⟩
   evalKNFCore′ 0 cond e v VNil
     ≡⟨ refl ⟩
@@ -501,7 +501,7 @@ evalKNF′ finalExp nothing = nothing
 
 ⊨While⇒evalKNFCore (⇓-WhileBottom {cond} {e} {v} ≡VBottom) =
   (suc zero) , (begin
-  evalKNFCore′ 0 cond e v (evalT cond v)
+  evalKNFCore′ 0 cond e v (⟦_⟧ cond v)
     ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡VBottom ⟩
   evalKNFCore′ 0 cond e v VBottom
     ≡⟨ refl ⟩
@@ -512,7 +512,7 @@ evalKNF′ finalExp nothing = nothing
 ⊨While⇒evalKNFCore (⇓-WhileCons {cond} {e} {v} {v′′} {vh} {vt} ≡VCons h)
   with ⊨While⇒evalKNFCore h
 ... | i , g = suc i , (begin
-  evalKNFCore′ i cond e v (evalT cond v)
+  evalKNFCore′ i cond e v (⟦_⟧ cond v)
     ≡⟨ cong (evalKNFCore′ i cond e v) ≡VCons ⟩
   evalKNFCore′ i cond e v (VCons vt vt)
     ≡⟨ g ⟩
@@ -530,11 +530,11 @@ evalKNF′ finalExp nothing = nothing
 ⊨KNF⇒evalKNF (⇓-eval {init} {cond} {body} {final} {v} {v′} h)
   with ⊨While⇒evalKNFCore h
 ... | i , g = i , (begin
-  evalKNF′ final (evalKNFCore i cond body (evalT init v))
+  evalKNF′ final (evalKNFCore i cond body (⟦_⟧ init v))
     ≡⟨ cong (evalKNF′ final) g ⟩
   evalKNF′ final (just v′)
     ≡⟨ refl ⟩
-  just (evalT final v′)
+  just (⟦_⟧ final v′)
   ∎)
   where open ≡-Reasoning
 
@@ -548,7 +548,7 @@ evalKNFCore⇒⊨While :
 evalKNFCore⇒⊨While zero ()
 
 evalKNFCore⇒⊨While (suc i) {cond} {e} {v} {v′} h
-  with evalT cond v | inspect (evalT cond) v
+  with ⟦_⟧ cond v | inspect (⟦_⟧ cond) v
 
 evalKNFCore⇒⊨While (suc i) refl | VNil | [ ≡VNil ]ⁱ =
   ⇓-WhileNil ≡VNil
@@ -567,8 +567,8 @@ evalKNF⇒⊨KNF :
     knf ⊨KNF v ⇓ v′
 
 evalKNF⇒⊨KNF i {KNF init cond body final} {v} {v′} h
-  with evalKNFCore i cond body (evalT init v)
-     | inspect (evalKNFCore i cond body) (evalT init v)
+  with evalKNFCore i cond body (⟦_⟧ init v)
+     | inspect (evalKNFCore i cond body) (⟦_⟧ init v)
 
 evalKNF⇒⊨KNF i {KNF init cond body final} refl | just v′ | [ ≡v′ ]ⁱ =
   ⇓-eval (evalKNFCore⇒⊨While i ≡v′)
@@ -592,21 +592,21 @@ evalKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
 -- to the SWhile interpreter.
 ---------------------------------------------------------
 
--- evalKNF⇔evalS
+-- evalKNF⇔exec
 
-evalKNF⇔evalS :
+evalKNF⇔exec :
   ∀ knf v v′ →
     ∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-    ∃ (λ (j : ℕ) → evalS j (KNFtoProg knf) v ≡ just v′)
+    ∃ (λ (j : ℕ) → exec j (KNFtoProg knf) v ≡ just v′)
 
-evalKNF⇔evalS knf v v′ =
+evalKNF⇔exec knf v v′ =
   (∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′))
     ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
   knf ⊨KNF v ⇓ v′
     ∼⟨ ⊨KNF⇔⊨ ⟩
   KNFtoProg knf ⊨ v ⇓ v′
-    ∼⟨ ⇓-⇔evalS ⟩
-  (∃ (λ (j : ℕ) → evalS j (KNFtoProg knf) v ≡ just v′))
+    ∼⟨ ⇓-⇔exec ⟩
+  (∃ (λ (j : ℕ) → exec j (KNFtoProg knf) v ≡ just v′))
   ∎
   where open Related.EquationalReasoning
 

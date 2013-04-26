@@ -49,7 +49,7 @@ unrollToInit : KNFProg → KNFProg
 
 unrollToInit (KNF initExp condExp bodyExp finalExp) =
   KNF newInit condExp bodyExp finalExp
-  where newInit = ntrm2trm $ norm $ (IfNil condExp Id bodyExp) $$ initExp
+  where newInit = ⌈ norm $ (IfNil condExp Id bodyExp) $$ initExp ⌉
 
 -----------------------------------
 -- Unrolling respects the semantics
@@ -61,7 +61,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
   ∀  {cond e v v′} →
     StrictTrm cond →
     [ cond ] e ⊨While v ⇓ v′ →
-    [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′
+    [ cond ] e ⊨While ⟦_⟧ (IfNil cond Id e) v ⇓  v′
 
 ⊨While-unrollToInit⇒ hs (⇓-WhileNil ≡VNil) rewrite ≡VNil =
   ⇓-WhileNil ≡VNil
@@ -75,11 +75,11 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 ⊨While-unrollToInit⇐ :
   ∀  {cond e v v′} →
     StrictTrm cond →
-    [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′ →
+    [ cond ] e ⊨While ⟦_⟧ (IfNil cond Id e) v ⇓  v′ →
     [ cond ] e ⊨While v ⇓ v′
 
 ⊨While-unrollToInit⇐ {cond} {e} {v} {v′} hs hw
-  with evalT cond v | inspect (evalT cond) v
+  with ⟦_⟧ cond v | inspect (⟦_⟧ cond) v
 
 ⊨While-unrollToInit⇐ hs hw
   | VNil | [ g ]ⁱ = hw
@@ -103,7 +103,7 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
   ∀ {cond e v v′} →
     StrictTrm cond →
     [ cond ] e ⊨While v ⇓ v′ ⇔
-    [ cond ] e ⊨While evalT (IfNil cond Id e) v ⇓  v′
+    [ cond ] e ⊨While ⟦_⟧ (IfNil cond Id e) v ⇓  v′
 
 ⊨While-unrollToInit hs =
   equivalence (⊨While-unrollToInit⇒ hs) (⊨While-unrollToInit⇐ hs)
@@ -122,38 +122,38 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 
 ⊨KNF-unrollToInit-lemma₁ :
   ∀ init cond body v →
-      evalNT (propagateIfCond
+      ⟦⌈_⌉⟧ (propagateIfCond
         (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
                   (normConv init))) v
       ≡
-      ifNil (evalT cond (evalT init v))
-            (evalT init v) (evalT body (evalT init v))
+      ifNil (⟦_⟧ cond (⟦_⟧ init v))
+            (⟦_⟧ init v) (⟦_⟧ body (⟦_⟧ init v))
 
 ⊨KNF-unrollToInit-lemma₁ init cond body v = begin
-  evalNT (propagateIfCond
+  ⟦⌈_⌉⟧ (propagateIfCond
     (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
               (normConv init))) v
-    ≡⟨ evalNT∘propagateIfCond
+    ≡⟨ ⟦⌈⌉⟧∘propagateIfCond
        (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
                  (normConv init)) v ⟩
-  evalNT (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
+  ⟦⌈_⌉⟧ (normNCmp (normNIf (normConv cond) (NSelCmp []) (normConv body))
                    (normConv init)) v
-    ≡⟨ evalNT∘normNCmp
+    ≡⟨ ⟦⌈⌉⟧∘normNCmp
        (normNIf (normConv cond) (NSelCmp []) (normConv body))
                 (normConv init) v ⟩
-  evalNT (normNIf (normConv cond) (NSelCmp []) (normConv body))
-         (evalNT (normConv init) v)
-    ≡⟨ cong (evalNT (normNIf (normConv cond) (NSelCmp []) (normConv body)))
-            (evalNT∘normConv init v) ⟩
-  evalNT (normNIf (normConv cond) (NSelCmp []) (normConv body)) (evalT init v)
-    ≡⟨ evalNT∘normNIf
-       (normConv cond) (NSelCmp []) (normConv body) (evalT init v) ⟩
-  ifNil (evalNT (normConv cond) (evalT init v))
-        (evalNT (NSelCmp []) (evalT init v))
-        (evalNT (normConv body) (evalT init v))
-    ≡⟨ ifNil-cong (evalNT∘normConv cond (evalT init v)) refl
-                  (evalNT∘normConv body (evalT init v)) ⟩
-  ifNil (evalT cond (evalT init v)) (evalT init v) (evalT body (evalT init v))
+  ⟦⌈_⌉⟧ (normNIf (normConv cond) (NSelCmp []) (normConv body))
+         (⟦⌈_⌉⟧ (normConv init) v)
+    ≡⟨ cong (⟦⌈_⌉⟧ (normNIf (normConv cond) (NSelCmp []) (normConv body)))
+            (⟦⌈⌉⟧∘normConv init v) ⟩
+  ⟦⌈_⌉⟧ (normNIf (normConv cond) (NSelCmp []) (normConv body)) (⟦_⟧ init v)
+    ≡⟨ ⟦⌈⌉⟧∘normNIf
+       (normConv cond) (NSelCmp []) (normConv body) (⟦_⟧ init v) ⟩
+  ifNil (⟦⌈_⌉⟧ (normConv cond) (⟦_⟧ init v))
+        (⟦⌈_⌉⟧ (NSelCmp []) (⟦_⟧ init v))
+        (⟦⌈_⌉⟧ (normConv body) (⟦_⟧ init v))
+    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘normConv cond (⟦_⟧ init v)) refl
+                  (⟦⌈⌉⟧∘normConv body (⟦_⟧ init v)) ⟩
+  ifNil (⟦_⟧ cond (⟦_⟧ init v)) (⟦_⟧ init v) (⟦_⟧ body (⟦_⟧ init v))
   ∎
   where open ≡-Reasoning
 
@@ -162,21 +162,21 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 ⊨KNF-unrollToInit-lemma₂ :
   ∀ (init cond body final : Trm) (v v′ : Val) →
     StrictTrm cond →
-    [ cond ] body ⊨While evalT init v ⇓ v′ ⇔
+    [ cond ] body ⊨While ⟦_⟧ init v ⇓ v′ ⇔
     [ cond ] body ⊨While
-      evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
+      ⟦⌈_⌉⟧ (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
                                                  (normConv body))
                                         (normConv init))) v ⇓ v′
 
 ⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs =
-  [ cond ] body ⊨While evalT init v ⇓ v′
+  [ cond ] body ⊨While ⟦_⟧ init v ⇓ v′
     ∼⟨ ⊨While-unrollToInit hs ⟩
   [ cond ] body ⊨While
-    ifNil (evalT cond (evalT init v))
-          (evalT init v) (evalT body (evalT init v)) ⇓ v′
+    ifNil (⟦_⟧ cond (⟦_⟧ init v))
+          (⟦_⟧ init v) (⟦_⟧ body (⟦_⟧ init v)) ⇓ v′
     ≡⟨ ⊨While-cong-v (P.sym $ ⊨KNF-unrollToInit-lemma₁ init cond body v) ⟩
   [ cond ] body ⊨While
-    evalNT (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
+    ⟦⌈_⌉⟧ (propagateIfCond (normNCmp (normNIf (normConv cond) (NSelCmp [])
                                                (normConv body))
                                       (normConv init))) v ⇓ v′
   ∎
