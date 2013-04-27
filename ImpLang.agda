@@ -216,8 +216,8 @@ strictNTrm? (nt1 ∷ⁿ nt2) = no (λ ())
 strictNTrm? (NSelCmp sels) = yes $ begin
   ⟦⌈_⌉⟧ (NSelCmp sels) VBottom
     ≡⟨ refl ⟩
-  ⟦_⟧ (sels2trm sels) VBottom
-    ≡⟨ ⟦⟧∘sels2trm sels VBottom ⟩
+  ⟦_⟧ ⟪ sels ⟫ VBottom
+    ≡⟨ ⟦⟧∘⟪⟫ sels VBottom ⟩
   _!!_ VBottom sels
     ≡⟨ !!-VBottom sels ⟩
   VBottom
@@ -225,9 +225,9 @@ strictNTrm? (NSelCmp sels) = yes $ begin
   where open ≡-Reasoning
 
 strictNTrm? (IfNilⁿ sels nt1 nt2) = yes $ begin
-  ifNil (⟦_⟧ (sels2trm sels) VBottom)
+  ifNil (⟦_⟧ ⟪ sels ⟫ VBottom)
         (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
-    ≡⟨ ifNil-cong (⟦⟧∘sels2trm sels VBottom) refl refl ⟩
+    ≡⟨ ifNil-cong (⟦⟧∘⟪⟫ sels VBottom) refl refl ⟩
   ifNil (_!!_ VBottom sels)
         (⟦⌈_⌉⟧ nt1 VBottom) (⟦⌈_⌉⟧ nt2 VBottom)
     ≡⟨ ifNil-cong (!!-VBottom sels) refl refl ⟩

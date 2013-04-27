@@ -438,7 +438,7 @@ condPropagatorsPreserveEval :
   ⟦⌈_⌉⟧ (IfNilⁿ sels nt1 nt2) v
 
 condPropagatorsPreserveEval sels nt1 nt2 v
-  rewrite ⟦⟧∘sels2trm sels v
+  rewrite ⟦⟧∘⟪⟫ sels v
   with _!!_ v sels | inspect (_!!_ v) sels 
 
 ... | VNil | [ ≡VNil ]ⁱ = begin
@@ -481,25 +481,25 @@ condPropagatorsPreserveEval sels nt1 nt2 v
   ⟦⌈_⌉⟧ (IfNilⁿ sels (normNCmp (propagateIfCond nt1) (setNilAt sels))
                       (normNCmp (propagateIfCond nt2) (setConsAt sels))) v
     ≡⟨ refl ⟩
-  ifNil (⟦_⟧ (sels2trm sels) v)
+  ifNil (⟦_⟧ ⟪ sels ⟫ v)
         (⟦⌈_⌉⟧ (normNCmp (propagateIfCond nt1) (setNilAt sels)) v)
         (⟦⌈_⌉⟧ (normNCmp (propagateIfCond nt2) (setConsAt sels)) v)
-    ≡⟨ cong₂ (ifNil (⟦_⟧ (sels2trm sels) v))
+    ≡⟨ cong₂ (ifNil (⟦_⟧ ⟪ sels ⟫ v))
              (⟦⌈⌉⟧∘normNCmp (propagateIfCond nt1) (setNilAt sels) v)
              (⟦⌈⌉⟧∘normNCmp (propagateIfCond nt2) (setConsAt sels) v) ⟩
-  ifNil (⟦_⟧ (sels2trm sels) v)
+  ifNil (⟦_⟧ ⟪ sels ⟫ v)
         (⟦⌈_⌉⟧ (propagateIfCond nt1) (⟦⌈_⌉⟧ (setNilAt sels) v))
         (⟦⌈_⌉⟧ (propagateIfCond nt2) (⟦⌈_⌉⟧ (setConsAt sels) v))
-    ≡⟨ cong₂ (ifNil (⟦_⟧ (sels2trm sels) v))
+    ≡⟨ cong₂ (ifNil (⟦_⟧ ⟪ sels ⟫ v))
              (⟦⌈⌉⟧∘propagateIfCond nt1 (⟦⌈_⌉⟧ (setNilAt sels) v))
              (⟦⌈⌉⟧∘propagateIfCond nt2 (⟦⌈_⌉⟧ (setConsAt sels) v)) ⟩
-  ifNil (⟦_⟧ (sels2trm sels) v)
+  ifNil (⟦_⟧ ⟪ sels ⟫ v)
         (⟦⌈_⌉⟧ nt1 (⟦⌈_⌉⟧ (setNilAt sels) v))
         (⟦⌈_⌉⟧ nt2 (⟦⌈_⌉⟧ (setConsAt sels) v))
-    ≡⟨ cong₂ (ifNil (⟦_⟧ (sels2trm sels) v))
+    ≡⟨ cong₂ (ifNil (⟦_⟧ ⟪ sels ⟫ v))
              (sym $ ⟦⌈⌉⟧∘normNCmp nt1 (setNilAt sels) v)
              (sym $ ⟦⌈⌉⟧∘normNCmp nt2 (setConsAt sels) v) ⟩
-  ifNil (⟦_⟧ (sels2trm sels) v)
+  ifNil (⟦_⟧ ⟪ sels ⟫ v)
         (⟦⌈_⌉⟧ (normNCmp nt1 (setNilAt sels)) v)
         (⟦⌈_⌉⟧ (normNCmp nt2 (setConsAt sels)) v)
     ≡⟨ refl ⟩

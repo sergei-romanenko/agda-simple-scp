@@ -97,9 +97,9 @@ TrmToFOTerm [] =
   FOFun0 (just TCNil)
 TrmToFOTerm (t1 ∷ t2) =
   FOFun2 (just TCCons) (TrmToFOTerm t1) (TrmToFOTerm t2)
-TrmToFOTerm (Sel HD) =
+TrmToFOTerm Hd =
   FOFun0 (just TCSelHd)
-TrmToFOTerm (Sel TL) =
+TrmToFOTerm Tl =
   FOFun0 (just TCSelTl)
 TrmToFOTerm Id =
   FOFun0 (just TCId)
