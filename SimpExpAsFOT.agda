@@ -110,7 +110,7 @@ TrmToFOTerm (IfNil t0 t1 t2) =
   FOFun2 (just TCIfNil) (TrmToFOTerm t0)
          (FOFun2 (just TCCons) (TrmToFOTerm t1) (TrmToFOTerm t2))
 
-TrmToFOTerm Bottom =
+TrmToFOTerm ↯ =
   FOFun0 (just TCBottom)
 
 open ⊴-Decidable ⊥ TrmCons _≟TC_ public

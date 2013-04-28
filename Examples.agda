@@ -47,12 +47,12 @@ revList-prog : KNFtoProg revList-knf ≡
 revList-prog = refl
 
 listToVal : List Val → Val
-listToVal vs = foldr VCons VNil vs
+listToVal vs = foldr _∷ˣ_ []ˣ vs
 
 evalKNF₁ :
-  evalKNF 3 revList-knf (listToVal (VNil ∷ (VCons VNil VNil) ∷ []))
+  evalKNF 3 revList-knf (listToVal ([]ˣ ∷ ([]ˣ ∷ˣ []ˣ) ∷ []))
   ≡
-  just (VCons (VCons VNil VNil) (VCons VNil VNil))
+  just (([]ˣ ∷ˣ []ˣ) ∷ˣ ([]ˣ ∷ˣ []ˣ))
 evalKNF₁ = refl
 
 --
@@ -78,7 +78,7 @@ listHasWFalse-knf-prog = refl
 -- We extend the computation state with a flag to hold the final result -
 -- at position Tl - while keeping the original input list at position Hd.
 -- Then we loop while the list is not empty, and test its head.
--- If it is VNil, we make the list empty to force an exit of the loop,
+-- If it is []ˣ, we make the list empty to force an exit of the loop,
 -- and set the result to true, otherwise we remove the list head and continue.
 
 -- Next, we introduce a specialized version of this program, which,
