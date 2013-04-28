@@ -213,8 +213,8 @@ strictNTrm? []ⁿ = no (λ ())
 
 strictNTrm? (nt1 ∷ⁿ nt2) = no (λ ())
 
-strictNTrm? (⟪_⟫ⁿ sels) = yes $ begin
-  ⟦⌈ ⟪_⟫ⁿ sels ⌉⟧ ↯ˣ
+strictNTrm? ⟪ sels ⟫ⁿ = yes $ begin
+  ⟦⌈ ⟪ sels ⟫ⁿ ⌉⟧ ↯ˣ
     ≡⟨ refl ⟩
   ⟦ ⟪ sels ⟫ ⟧ ↯ˣ
     ≡⟨ ⟦⟧∘⟪⟫ sels ↯ˣ ⟩

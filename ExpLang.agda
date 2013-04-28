@@ -588,7 +588,7 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
             (⟦⌈ normNCmp nt' nt2 ⌉⟧ v) (⟦⌈ normNCmp nt'' nt2 ⌉⟧ v)
 
     helper ⟪ sels' ⟫ⁿ = begin
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') (⟪_⟫ⁿ sels') ⌉⟧ v
+      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') ⟪ sels' ⟫ⁿ ⌉⟧ v
         ≡⟨ refl ⟩
       ifNil (⟦ ⟪ sels' ++ sels ⟫ ⟧ v)
             (⟦⌈ normNCmpSels nt' sels' ⌉⟧ v) (⟦⌈ normNCmpSels nt'' sels' ⌉⟧ v)
@@ -602,25 +602,25 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
             (sym $ cong (⟦ ⌈ nt' ⌉ ⟧) (⟦⟧∘⟪⟫ sels' v))
             (sym $ cong (⟦ ⌈ nt'' ⌉ ⟧) (⟦⟧∘⟪⟫ sels' v)) ⟩
       ifNil (v !! sels' !! sels)
-            (⟦⌈ nt' ⌉⟧ (⟦⌈ ⟪_⟫ⁿ sels' ⌉⟧ v))
-            (⟦⌈ nt'' ⌉⟧ (⟦⌈ ⟪_⟫ⁿ sels' ⌉⟧ v))
+            (⟦⌈ nt' ⌉⟧ (⟦⌈ ⟪ sels' ⟫ⁿ ⌉⟧ v))
+            (⟦⌈ nt'' ⌉⟧ (⟦⌈ ⟪ sels' ⟫ⁿ ⌉⟧ v))
         ≡⟨ ifNil-cong
              (cong (flip _!!_ sels) (sym (⟦⟧∘⟪⟫ sels' v)))
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt' (⟪_⟫ⁿ sels') v)
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt'' (⟪_⟫ⁿ sels') v) ⟩
+             (sym $ ⟦⌈⌉⟧∘normNCmp nt' ⟪ sels' ⟫ⁿ v)
+             (sym $ ⟦⌈⌉⟧∘normNCmp nt'' ⟪ sels' ⟫ⁿ v) ⟩
       ifNil (⟦ ⟪ sels' ⟫ ⟧ v !! sels)
-            (⟦⌈ normNCmp nt' (⟪_⟫ⁿ sels') ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' (⟪_⟫ⁿ sels') ⌉⟧ v)
+            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
         ≡⟨ refl ⟩
-      ifNil (⟦⌈ ⟪_⟫ⁿ sels' ⌉⟧ v !! sels)
-            (⟦⌈ normNCmp nt' (⟪_⟫ⁿ sels') ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' (⟪_⟫ⁿ sels') ⌉⟧ v)
+      ifNil (⟦⌈ ⟪ sels' ⟫ⁿ ⌉⟧ v !! sels)
+            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
         ≡⟨ ifNil-cong
-             (sym (⟦⌈⌉⟧∘normSelsNCmp (⟪_⟫ⁿ sels') sels v))
+             (sym (⟦⌈⌉⟧∘normSelsNCmp ⟪ sels' ⟫ⁿ sels v))
              refl refl ⟩
-      ifNil (⟦⌈ normSelsNCmp (⟪_⟫ⁿ sels') sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' (⟪_⟫ⁿ sels') ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' (⟪_⟫ⁿ sels') ⌉⟧ v)
+      ifNil (⟦⌈ normSelsNCmp ⟪ sels' ⟫ⁿ sels ⌉⟧ v)
+            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
       ∎
 
     helper (IfNilⁿ sels' nt1 nt3) = begin
@@ -770,9 +770,9 @@ normConv : (t : Trm) → NTrm
 
 normConv [] = []ⁿ
 normConv (t1 ∷ t2) = normConv t1  ∷ⁿ normConv t2
-normConv Hd = ⟪_⟫ⁿ [ HD ]
-normConv Tl = ⟪_⟫ⁿ [ TL ]
-normConv Id = ⟪_⟫ⁿ []
+normConv Hd = ⟪ [ HD ] ⟫ⁿ
+normConv Tl = ⟪ [ TL ] ⟫ⁿ
+normConv Id = ⟪ [] ⟫ⁿ
 normConv (t1 $$ t2) = normNCmp (normConv t1) (normConv t2)
 normConv (IfNil t0 t1 t2) = normNIf (normConv t0) (normConv t1) (normConv t2)
 normConv ↯ = ↯ⁿ
@@ -968,26 +968,26 @@ normSelsNCmp∘ReplaceAt sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 
 -- replaceAt∘⟪⟫ⁿ
 
 replaceAt∘⟪⟫ⁿ : (sels1 sels2 : List Selector) (nt : NTrm) →
-  replaceAt sels1 (⟪_⟫ⁿ sels2) nt 
-    ≡ normSelsNCmp (replaceAt (sels2 ++ sels1) (⟪_⟫ⁿ []) nt) sels2
+  replaceAt sels1 ⟪ sels2 ⟫ⁿ nt 
+    ≡ normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt) sels2
 
 replaceAt∘⟪⟫ⁿ sels1 sels2 nt =
   begin
-    replaceAt sels1 (⟪_⟫ⁿ sels2) nt
+    replaceAt sels1 ⟪ sels2 ⟫ⁿ nt
       ≡⟨ refl ⟩
-    normSelsNCmp (replaceAt sels1 (⟪_⟫ⁿ sels2) nt) []
+    normSelsNCmp (replaceAt sels1 ⟪ sels2 ⟫ⁿ nt) []
       ≡⟨ cong (λ z → normSelsNCmp (replaceAt sels1 z nt) [])
               (sym $ normSelsNCmp∘⟪⟫ⁿ [] sels2) ⟩
-    normSelsNCmp (replaceAt sels1 (normSelsNCmp (⟪_⟫ⁿ []) sels2) nt) []
+    normSelsNCmp (replaceAt sels1 (normSelsNCmp ⟪ [] ⟫ⁿ sels2) nt) []
       ≡⟨ sym $ normSelsNCmp∘ReplaceAt [] sels1
-                                      (normSelsNCmp (⟪_⟫ⁿ []) sels2)
+                                      (normSelsNCmp ⟪ [] ⟫ⁿ sels2)
                                       nt ⟩
-    replaceAt sels1 (normSelsNCmp (⟪_⟫ⁿ []) sels2) nt
-      ≡⟨ sym $ normSelsNCmp∘ReplaceAt′ sels2 [] sels1 (⟪_⟫ⁿ []) nt ⟩
-    normSelsNCmp (replaceAt (sels2 ++ sels1) (⟪_⟫ⁿ []) nt) (sels2 ++ [])
-      ≡⟨ cong (normSelsNCmp (replaceAt (sels2 ++ sels1) (⟪_⟫ⁿ []) nt))
+    replaceAt sels1 (normSelsNCmp ⟪ [] ⟫ⁿ sels2) nt
+      ≡⟨ sym $ normSelsNCmp∘ReplaceAt′ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
+    normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt) (sels2 ++ [])
+      ≡⟨ cong (normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt))
               (++-[] sels2) ⟩
-    normSelsNCmp (replaceAt (sels2 ++ sels1) (⟪_⟫ⁿ []) nt) sels2
+    normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt) sels2
   ∎
 
 --
