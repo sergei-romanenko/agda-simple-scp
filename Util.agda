@@ -19,37 +19,12 @@ open import Function
 open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality renaming ([_] to [_]ⁱ)
 
+
+import Algebra
+module LM {a} {A : Set a} = Algebra.Monoid (Data.List.monoid A)
+
 open ≡-Reasoning
 open Membership-≡
-
--- ++-[]
-
-++-[] : ∀ {ℓ} {A : Set ℓ} (xs : List A) →
-  xs ++ [] ≡ xs
-++-[] [] = refl
-++-[] (x ∷ xs) = cong (_∷_ x) (++-[] xs)
-
--- ++-assoc
-
-++-assoc : ∀ {ℓ} {A : Set ℓ} (xs ys zs : List A) →
-  (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
-++-assoc [] ys zs = refl
-++-assoc (x ∷ xs) ys zs = cong (_∷_ x) (++-assoc xs ys zs)
-
--- foldl⇒foldr
-
-foldl⇒foldr : ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
-                foldl f n xs ≡ foldr (λ b g x → g (f x b)) id xs n
-foldl⇒foldr f n [] = refl
-foldl⇒foldr f n (b ∷ xs) =
-  begin
-    foldl f (f n b) xs
-      ≡⟨ foldl⇒foldr f (f n b) xs ⟩
-    foldr (λ b g x → g (f x b)) id xs (f n b)
-      ≡⟨ refl ⟩
-    foldr (λ b g x → g (f x b)) id (b ∷ xs) n
-  ∎
-
 
 -- reverse-involutive
 
@@ -70,28 +45,28 @@ reverse-involutive (x ∷ xs) =
 
 -- foldr-∷ʳ
 
-foldr-∷ʳ : ∀ {A B : Set} (f : A → B → B) → ∀ n xs x →
+foldr-∷ʳ : ∀ {A B : Set} (f : A → B → B) → ∀ {n x} xs →
           foldr f n (xs ∷ʳ x) ≡ foldr f (f x n) xs
-foldr-∷ʳ f n [] x = refl
-foldr-∷ʳ f n (x' ∷ xs) x = cong (f x') (foldr-∷ʳ f n xs x)
+foldr-∷ʳ f [] = refl
+foldr-∷ʳ f (y ∷ xs) = cong (f y) (foldr-∷ʳ f xs)
 
--- foldl⇒foldr-reverse
+-- foldr∘reverse
 
-foldl⇒foldr-reverse :
-  ∀ {A B : Set} (f : B → A → B) → ∀ n xs →
-    foldl f n xs ≡ foldr (flip f) n (reverse xs)
-foldl⇒foldr-reverse f n [] = refl
-foldl⇒foldr-reverse f n (x ∷ xs) =
-  begin
-    foldl f n (x ∷ xs)
-      ≡⟨ refl ⟩
-    foldl f (f n x) xs
-      ≡⟨ foldl⇒foldr-reverse f (f n x) xs ⟩
-    foldr (flip f) ((flip f) x n) (reverse xs)
-      ≡⟨ sym (foldr-∷ʳ (flip f) n (reverse xs) x) ⟩
-    foldr (flip f) n (reverse xs ++ [ x ])
-      ≡⟨ cong (foldr (flip f) n) (sym (unfold-reverse x xs)) ⟩
-    foldr (flip f) n (reverse (x ∷ xs))
+foldr∘reverse :
+  ∀ {A B : Set} (f : A → B → B) → ∀ n xs →
+    foldr f n (reverse xs) ≡ foldl (flip f) n xs
+
+foldr∘reverse f n [] =
+  refl
+
+foldr∘reverse f n (x ∷ xs) = begin
+  foldr f n (reverse (x ∷ xs))
+    ≡⟨ cong (foldr f n) (unfold-reverse x xs) ⟩
+  foldr f n (reverse xs ++ [ x ])
+    ≡⟨ foldr-∷ʳ f (reverse xs) ⟩
+  foldr f (f x n) (reverse xs)
+    ≡⟨ foldr∘reverse f (f x n) xs ⟩
+  foldl (flip f) n (x ∷ xs)
   ∎
 
 --
@@ -101,18 +76,28 @@ foldl⇒foldr-reverse f n (x ∷ xs) =
 -- The word `Sequence` is used to avoid conflict with `stream`
 -- (in Data.Stream).
 
+-- Sequence
+
 Sequence : Set → Set
 Sequence A = ℕ → A
 
+-- ℕ-seq
+
 ℕ-seq : (k l : ℕ) → List ℕ
+
 ℕ-seq k zero = []
 ℕ-seq k (suc l) = k ∷ ℕ-seq (suc k) l
 
+-- find-in-list
+
 find-in-list : ∀ {a} {A : Set a} (p : A → Bool) → List A → Maybe A
+
 find-in-list p [] = nothing
 find-in-list p (x ∷ xs) with p x
 ... | true = just x
 ... | false = find-in-list p xs
+
+-- find-just
 
 find-just : ∀ {a} {A : Set a}
   (p : A → Bool) (x : A) (xs : List A) →
@@ -155,6 +140,8 @@ maybe-dec _≟A_ {nothing} {just x} =
 
 maybe-dec _≟A_ {nothing} {nothing} =
   yes refl
+
+-- <⇒≤
 
 <⇒≤ : {m n : ℕ} → m < n → m ≤ n
 <⇒≤ (s≤s z≤n) = z≤n

@@ -8,7 +8,6 @@ open import Relation.Binary.PropositionalEquality
   renaming([_] to [_]ⁱ)
 
 open import Function
-
 open ≡-Reasoning
 
 open import Util
@@ -112,8 +111,8 @@ setConsAtPreservesEval′ : (sels1 sels2 : List Selector) →
 setConsAtPreservesEval′ [] sels2 = refl
 
 setConsAtPreservesEval′ (HD ∷ sels1) sels2
-  rewrite sym $ ++-assoc sels2 [ HD ] (sels1 ++ [ HD ])
-        | sym $ ++-assoc sels2 [ HD ] (sels1 ++ [ TL ])
+  rewrite sym $ LM.assoc sels2 [ HD ] (sels1 ++ [ HD ])
+        | sym $ LM.assoc sels2 [ HD ] (sels1 ++ [ TL ])
   = cong (flip _∷ⁿ_ ⟪ sels2 ++ [ TL ] ⟫ⁿ)
          helper
   where
@@ -146,8 +145,8 @@ setConsAtPreservesEval′ (HD ∷ sels1) sels2
       ∎
 
 setConsAtPreservesEval′ (TL ∷ sels1) sels2
-  rewrite sym $ ++-assoc sels2 [ TL ] (sels1 ++ [ TL ])
-        | sym $ ++-assoc sels2 [ TL ] (sels1 ++ [ HD ])
+  rewrite sym $ LM.assoc sels2 [ TL ] (sels1 ++ [ TL ])
+        | sym $ LM.assoc sels2 [ TL ] (sels1 ++ [ HD ])
         | setConsAtPreservesEval′ sels1 (sels2 ++ [ TL ])
         | setConsAtPreservesEval′ sels1 [ TL ]
         | normNCmpSels∘++
@@ -237,14 +236,14 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (replaceAt sels2 (⟪ sels1 ⟫ⁿ))
                   (cong (flip _∷ⁿ_ (⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))
-                        (cong ⟪_⟫ⁿ (++-assoc sels1 sels2 [ HD ])))) ⟩
+                        (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ HD ])))) ⟩
   ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
                      (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
                        ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (replaceAt sels2 ⟪ sels1 ⟫ⁿ)
                   (cong (_∷ⁿ_ (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ))
-                        (cong ⟪_⟫ⁿ (++-assoc sels1 sels2 [ TL ])))) ⟩
+                        (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ TL ])))) ⟩
   ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
                      (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
                        ⟪ sels1 ++ sels2 ++ [ TL ] ⟫ⁿ) ⌉⟧ v

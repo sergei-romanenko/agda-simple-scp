@@ -3,7 +3,6 @@ module ExpLang where
 open import Data.List
 open import Data.List.Reverse
 open import Data.List.Properties
---open import Data.Nat hiding (compare)
 open import Data.Unit
 open import Data.Empty
 
@@ -14,6 +13,7 @@ open import Relation.Binary.PropositionalEquality
   renaming([_] to [_]ⁱ)
 open import Relation.Nullary
 open import Relation.Binary
+
 open ≡-Reasoning
 
 open import Util
@@ -175,11 +175,11 @@ t  ⁉ TL = Tl $$ t
     ⟦ ⟪ sels ⟫ ⟧ v
       ≡⟨ refl ⟩
     ⟦ foldl _⁉_ Id sels ⟧ v
-      ≡⟨ cong (flip ⟦_⟧ v) (foldl⇒foldr-reverse _⁉_ Id sels) ⟩
+      ≡⟨ cong (flip ⟦_⟧ v) (sym $ foldr∘reverse (flip _⁉_) Id sels) ⟩
     ⟦ foldr (flip _⁉_) Id (reverse sels) ⟧ v
       ≡⟨ ⟦⟧∘foldr (foldl (flip _∷_) [] sels) v ⟩
     foldr (flip _!_) v (reverse sels)
-      ≡⟨ sym (foldl⇒foldr-reverse _!_ v sels) ⟩
+      ≡⟨ foldr∘reverse (flip _!_) v sels ⟩
     foldl _!_ v sels
       ≡⟨ sym $ !!IsFoldl v sels ⟩
     v !! sels
@@ -287,7 +287,7 @@ normSelNCmp ↯ⁿ sel = ↯ⁿ
     v !! sels !! [ sel ]
       ≡⟨ refl ⟩
     v !! sels ! sel
-      ≡⟨ sym (cong (flip _!_ sel) (⟦⟧∘⟪⟫ sels v)) ⟩
+      ≡⟨ sym $ cong (flip _!_ sel) (⟦⟧∘⟪⟫ sels v) ⟩
     ⟦ ⟪ sels ⟫ ⟧ v ! sel
       ≡⟨ refl ⟩
     ⟦ ⌈ ⟪ sels ⟫ⁿ ⌉ ⟧ v ! sel
@@ -359,7 +359,7 @@ normSelsNCmp∘⟪⟫ⁿ : ∀ (sels1 sels2 : List Selector) →
   normSelsNCmp ⟪ sels1 ⟫ⁿ sels2 ≡ ⟪ sels1 ++ sels2 ⟫ⁿ
 
 normSelsNCmp∘⟪⟫ⁿ sels1 []
-  rewrite ++-[] sels1
+  rewrite proj₂ LM.identity sels1
   = refl
 normSelsNCmp∘⟪⟫ⁿ sels1 (sel ∷ sels) = begin
   normSelsNCmp ⟪ sels1 ⟫ⁿ (sel ∷ sels)
@@ -367,7 +367,7 @@ normSelsNCmp∘⟪⟫ⁿ sels1 (sel ∷ sels) = begin
   normSelsNCmp ⟪ sels1 ++ sel ∷ [] ⟫ⁿ sels
     ≡⟨ normSelsNCmp∘⟪⟫ⁿ (sels1 ++ sel ∷ []) sels ⟩
   ⟪ (sels1 ++ sel ∷ []) ++ sels ⟫ⁿ
-    ≡⟨ cong ⟪_⟫ⁿ (++-assoc sels1 (sel ∷ []) sels) ⟩
+    ≡⟨ cong ⟪_⟫ⁿ (LM.assoc sels1 (sel ∷ []) sels) ⟩
   ⟪ sels1 ++ (sel ∷ [] ++ sels) ⟫ⁿ
     ≡⟨ refl ⟩
   ⟪ sels1 ++ sel ∷ sels ⟫ⁿ
@@ -409,7 +409,7 @@ normNCmpSels ↯ⁿ sels =
     v !! (sels ++ sels0)
       ≡⟨ !!∘++ v sels sels0 ⟩
     v !! sels !! sels0
-      ≡⟨ sym (⟦⟧∘⟪⟫ sels0 (v !! sels)) ⟩
+      ≡⟨ sym $ ⟦⟧∘⟪⟫ sels0 (v !! sels) ⟩
     ⟦ ⟪ sels0 ⟫ ⟧ (v !! sels)
       ≡⟨ refl ⟩
     ⟦⌈ ⟪ sels0 ⟫ⁿ ⌉⟧ (v !! sels)
@@ -452,11 +452,11 @@ normNCmpSels∘++ (nt1 ∷ⁿ nt2) sels1 sels2
   ∎
 
 normNCmpSels∘++ ⟪ sels ⟫ⁿ sels1 sels2
-  rewrite ++-assoc sels1 sels2 sels
+  rewrite LM.assoc sels1 sels2 sels
   =  refl
 
 normNCmpSels∘++ (IfNilⁿ sels nt1 nt2) sels1 sels2
-  rewrite ++-assoc sels1 sels2 sels
+  rewrite LM.assoc sels1 sels2 sels
         | normNCmpSels∘++ nt1 sels1 sels2
         | normNCmpSels∘++ nt2 sels1 sels2
   = refl
@@ -986,7 +986,7 @@ replaceAt∘⟪⟫ⁿ sels1 sels2 nt =
       ≡⟨ sym $ normSelsNCmp∘ReplaceAt′ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
     normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt) (sels2 ++ [])
       ≡⟨ cong (normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt))
-              (++-[] sels2) ⟩
+              (proj₂ LM.identity sels2) ⟩
     normSelsNCmp (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt) sels2
   ∎
 
