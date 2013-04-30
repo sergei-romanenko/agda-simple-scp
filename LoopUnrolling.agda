@@ -34,8 +34,6 @@ open import ImpLang
 -- ⊨KNF-unroller
 --
 
--- TODO: `unrollToInit` might be abstracted away from some theorems...
-
 ⊨KNF-unroller : (KNFProg → KNFProg) → Set
 
 ⊨KNF-unroller unroll =
@@ -123,36 +121,30 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
 ⊨KNF-unrollToInit-lemma₁ :
   ∀ init cond body v →
       ⟦⌈ propagateIfCond
-         (normNCmp (normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body))
-                  (normConv init)) ⌉⟧ v
+         (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v
       ≡
       ifNil (⟦ cond ⟧ (⟦ init ⟧ v))
             (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v))
 
 ⊨KNF-unrollToInit-lemma₁ init cond body v = begin
   ⟦⌈ propagateIfCond
-     (normNCmp (normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body))
-               (normConv init)) ⌉⟧ v
+     (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v
     ≡⟨ ⟦⌈⌉⟧∘propagateIfCond
-       (normNCmp (normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body))
-                 (normConv init)) v ⟩
-  ⟦⌈ normNCmp (normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body))
-                       (normConv init) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmp
-       (normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body))
-                (normConv init) v ⟩
-  ⟦⌈ normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body) ⌉⟧
-             (⟦⌈ normConv init ⌉⟧ v)
-    ≡⟨ cong ⟦⌈ normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body) ⌉⟧
-            (⟦⌈⌉⟧∘normConv init v) ⟩
-  ⟦⌈ normNIf (normConv cond) ⟪ [] ⟫ⁿ (normConv body) ⌉⟧ (⟦ init ⟧ v)
-    ≡⟨ ⟦⌈⌉⟧∘normNIf
-       (normConv cond) ⟪ [] ⟫ⁿ (normConv body) (⟦ init ⟧ v) ⟩
-  ifNil (⟦⌈ normConv cond ⌉⟧ (⟦ init ⟧ v))
+       (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) v ⟩
+  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○ (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊) ⌋ init ⌊ v ⟩
+  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧
+             (⟦⌈ ⌋ init ⌊ ⌉⟧ v)
+    ≡⟨ cong ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧
+            (⟦⌈⌉⟧∘⌋⌊ init v) ⟩
+  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧ (⟦ init ⟧ v)
+    ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱
+       (⌋ cond ⌊) ⟪ [] ⟫ⁿ (⌋ body ⌊) (⟦ init ⟧ v) ⟩
+  ifNil (⟦⌈ ⌋ cond ⌊ ⌉⟧ (⟦ init ⟧ v))
         (⟦⌈ ⟪ [] ⟫ⁿ ⌉⟧ (⟦ init ⟧ v))
-        (⟦⌈ normConv body ⌉⟧ (⟦ init ⟧ v))
-    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘normConv cond (⟦ init ⟧ v)) refl
-                  (⟦⌈⌉⟧∘normConv body (⟦ init ⟧ v)) ⟩
+        (⟦⌈ ⌋ body ⌊ ⌉⟧ (⟦ init ⟧ v))
+    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘⌋⌊ cond (⟦ init ⟧ v)) refl
+                  (⟦⌈⌉⟧∘⌋⌊ body (⟦ init ⟧ v)) ⟩
   ifNil (⟦ cond ⟧ (⟦ init ⟧ v)) (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v))
   ∎
   where open ≡-Reasoning
@@ -164,9 +156,8 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
     StrictTrm cond →
     [ cond ] body ⊨While ⟦ init ⟧ v ⇓ v′ ⇔
     [ cond ] body ⊨While
-      ⟦⌈ propagateIfCond (normNCmp (normNIf (normConv cond)
-                                            ⟪ [] ⟫ⁿ (normConv body))
-                                        (normConv init)) ⌉⟧ v ⇓ v′
+      ⟦⌈ propagateIfCond
+           (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v ⇓ v′
 
 ⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs =
   [ cond ] body ⊨While ⟦ init ⟧ v ⇓ v′
@@ -176,9 +167,8 @@ unrollToInit (KNF initExp condExp bodyExp finalExp) =
           (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v)) ⇓ v′
     ≡⟨ ⊨While-cong-v (P.sym $ ⊨KNF-unrollToInit-lemma₁ init cond body v) ⟩
   [ cond ] body ⊨While
-    ⟦⌈ propagateIfCond (normNCmp (normNIf (normConv cond) ⟪ [] ⟫ⁿ
-                                          (normConv body))
-                                      (normConv init)) ⌉⟧ v ⇓ v′
+    ⟦⌈ propagateIfCond (IfNilⁿ⟱ (⌋ cond ⌊) ⟪ [] ⟫ⁿ (⌋ body ⌊) ○
+                       ⌋ init ⌊) ⌉⟧ v ⇓ v′
   ∎
   where open Related.EquationalReasoning
 

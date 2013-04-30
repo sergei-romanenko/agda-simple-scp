@@ -374,7 +374,7 @@ nt !!ⁿ sels =
 
 -- _○⟪_⟫ⁿ
 
-infixl 4 _○⟪_⟫ⁿ
+infixl 4 _○⟪_⟫ⁿ _○_
 
 _○⟪_⟫ⁿ : (nt : NTrm) (sels : List Selector) → NTrm
 
@@ -457,95 +457,95 @@ IfNilⁿ sels2 nt1 nt2 ○⟪ sels ⟫ⁿ =
 
 ∘⟪⟫ⁿ∘++  ↯ⁿ sels1 sels2 = refl
 
--- normNIf
+-- IfNilⁿ⟱
 
-normNIf : (nt0 nt1 nt2 : NTrm) → NTrm
+IfNilⁿ⟱ : (nt0 nt1 nt2 : NTrm) → NTrm
 
-normNIf []ⁿ nt1 nt2 =
+IfNilⁿ⟱ []ⁿ nt1 nt2 =
   nt1
-normNIf (nt' ∷ⁿ nt'') nt1 nt2 =
+IfNilⁿ⟱ (nt' ∷ⁿ nt'') nt1 nt2 =
   nt2
-normNIf ⟪ sels ⟫ⁿ nt1 nt2 =
+IfNilⁿ⟱ ⟪ sels ⟫ⁿ nt1 nt2 =
   IfNilⁿ sels nt1 nt2
-normNIf (IfNilⁿ sels nt' nt'') nt1 nt2 =
-  IfNilⁿ sels (normNIf nt' nt1 nt2) (normNIf nt'' nt1 nt2)
-normNIf ↯ⁿ nt1 nt2 =
+IfNilⁿ⟱ (IfNilⁿ sels nt' nt'') nt1 nt2 =
+  IfNilⁿ sels (IfNilⁿ⟱ nt' nt1 nt2) (IfNilⁿ⟱ nt'' nt1 nt2)
+IfNilⁿ⟱ ↯ⁿ nt1 nt2 =
   ↯ⁿ
 
--- ⟦⌈⌉⟧∘normNIf
+-- ⟦⌈⌉⟧∘IfNilⁿ⟱
 
-⟦⌈⌉⟧∘normNIf : ∀ (nt1 nt2 nt3 : NTrm) (v : Val) →
-  ⟦⌈ (normNIf nt1 nt2 nt3) ⌉⟧ v ≡
+⟦⌈⌉⟧∘IfNilⁿ⟱ : ∀ (nt1 nt2 nt3 : NTrm) (v : Val) →
+  ⟦⌈ (IfNilⁿ⟱ nt1 nt2 nt3) ⌉⟧ v ≡
     ifNil (⟦⌈ nt1 ⌉⟧ v) (⟦⌈ nt2 ⌉⟧ v) (⟦⌈ nt3 ⌉⟧ v)
 
-⟦⌈⌉⟧∘normNIf []ⁿ nt2 nt3 v = refl
-⟦⌈⌉⟧∘normNIf (nt' ∷ⁿ nt'') nt2 nt3 v = refl
-⟦⌈⌉⟧∘normNIf ⟪ sels ⟫ⁿ nt2 nt3 v
+⟦⌈⌉⟧∘IfNilⁿ⟱ []ⁿ nt2 nt3 v = refl
+⟦⌈⌉⟧∘IfNilⁿ⟱ (nt' ∷ⁿ nt'') nt2 nt3 v = refl
+⟦⌈⌉⟧∘IfNilⁿ⟱ ⟪ sels ⟫ⁿ nt2 nt3 v
   with ⟦ ⟪ sels ⟫ ⟧ v
 ... | []ˣ = refl
 ... | v1 ∷ˣ v2 = refl
 ... | ↯ˣ = refl
-⟦⌈⌉⟧∘normNIf (IfNilⁿ sels nt' nt'') nt2 nt3 v
+⟦⌈⌉⟧∘IfNilⁿ⟱ (IfNilⁿ sels nt' nt'') nt2 nt3 v
   with ⟦ ⟪ sels ⟫ ⟧ v
-... | []ˣ      rewrite ⟦⌈⌉⟧∘normNIf nt'  nt2 nt3 v = refl
-... | v1 ∷ˣ v2 rewrite ⟦⌈⌉⟧∘normNIf nt'' nt2 nt3 v = refl
+... | []ˣ      rewrite ⟦⌈⌉⟧∘IfNilⁿ⟱ nt'  nt2 nt3 v = refl
+... | v1 ∷ˣ v2 rewrite ⟦⌈⌉⟧∘IfNilⁿ⟱ nt'' nt2 nt3 v = refl
 ... | ↯ˣ = refl
-⟦⌈⌉⟧∘normNIf ↯ⁿ nt2 nt3 v = refl
+⟦⌈⌉⟧∘IfNilⁿ⟱ ↯ⁿ nt2 nt3 v = refl
 
--- normNCmp
+-- _○_
 
-normNCmp : NTrm → NTrm → NTrm
+_○_ : NTrm → NTrm → NTrm
 
-normNCmp []ⁿ nt2 =
+[]ⁿ ○ nt2 =
   []ⁿ
 
-normNCmp (nt' ∷ⁿ nt'') nt2 =
-  normNCmp nt' nt2 ∷ⁿ normNCmp nt'' nt2
+nt' ∷ⁿ nt'' ○ nt2 =
+  (nt' ○ nt2) ∷ⁿ (nt'' ○ nt2)
 
-normNCmp ⟪ sels ⟫ⁿ nt2 =
+⟪ sels ⟫ⁿ ○ nt2 =
   nt2 !!ⁿ sels
 
-normNCmp (IfNilⁿ sels nt' nt'') ⟪ sels2 ⟫ⁿ =
+IfNilⁿ sels nt' nt'' ○ ⟪ sels2 ⟫ⁿ =
   IfNilⁿ (sels2 ++ sels) (nt' ○⟪ sels2 ⟫ⁿ) (nt'' ○⟪ sels2 ⟫ⁿ)
 
-normNCmp (IfNilⁿ sels nt' nt'') (IfNilⁿ sels2 nt2' nt2'') =
-  IfNilⁿ sels2 (normNCmp (IfNilⁿ sels nt' nt'') nt2')
-               (normNCmp (IfNilⁿ sels nt' nt'') nt2'')
+IfNilⁿ sels nt' nt'' ○ IfNilⁿ sels2 nt2' nt2'' =
+  IfNilⁿ sels2 (IfNilⁿ sels nt' nt'' ○ nt2')
+               (IfNilⁿ sels nt' nt'' ○ nt2'')
 
-normNCmp (IfNilⁿ sels nt' nt'') nt2 =
-  normNIf (nt2 !!ⁿ sels) (normNCmp nt' nt2) (normNCmp nt'' nt2)
+IfNilⁿ sels nt' nt'' ○ nt2 =
+  IfNilⁿ⟱ (nt2 !!ⁿ sels) (nt' ○ nt2) (nt'' ○ nt2)
 
-normNCmp ↯ⁿ nt2 =
+↯ⁿ ○ nt2 =
   ↯ⁿ
 
--- normNCmp∘IfNilⁿ
+-- ○∘IfNilⁿ
 
-normNCmp∘IfNilⁿ : (sels1 sels2 : List Selector) →
+○∘IfNilⁿ : (sels1 sels2 : List Selector) →
   (nt1-1 nt1-2 nt2-1 nt2-2 : NTrm) →
   let nt1 = IfNilⁿ sels1 nt1-1 nt1-2 in 
-  normNCmp nt1 (IfNilⁿ sels2 nt2-1 nt2-2)
-    ≡ IfNilⁿ sels2 (normNCmp nt1 nt2-1) (normNCmp nt1 nt2-2)
+  nt1 ○ IfNilⁿ sels2 nt2-1 nt2-2
+    ≡ IfNilⁿ sels2 (nt1 ○ nt2-1) (nt1 ○ nt2-2)
 
-normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
+○∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
 
 --
--- ⟦⌈⌉⟧∘normNCmp
+-- ⟦⌈⌉⟧∘○
 --
 
-⟦⌈⌉⟧∘normNCmp : (nt1 nt2 : NTrm) (v : Val) →
-  ⟦⌈ normNCmp nt1 nt2 ⌉⟧ v ≡ ⟦⌈ nt1 ⌉⟧ (⟦⌈ nt2 ⌉⟧ v)
+⟦⌈⌉⟧∘○ : (nt1 nt2 : NTrm) (v : Val) →
+  ⟦⌈ nt1 ○ nt2 ⌉⟧ v ≡ ⟦⌈ nt1 ⌉⟧ (⟦⌈ nt2 ⌉⟧ v)
 
-⟦⌈⌉⟧∘normNCmp []ⁿ nt2 v =
+⟦⌈⌉⟧∘○ []ⁿ nt2 v =
   refl
 
-⟦⌈⌉⟧∘normNCmp (nt' ∷ⁿ nt'') nt2 v
-  rewrite ⟦⌈⌉⟧∘normNCmp nt' nt2 v
-        | ⟦⌈⌉⟧∘normNCmp nt'' nt2 v
+⟦⌈⌉⟧∘○ (nt' ∷ⁿ nt'') nt2 v
+  rewrite ⟦⌈⌉⟧∘○ nt' nt2 v
+        | ⟦⌈⌉⟧∘○ nt'' nt2 v
   = refl
 
-⟦⌈⌉⟧∘normNCmp (⟪ sels ⟫ⁿ) nt2 v =
+⟦⌈⌉⟧∘○ (⟪ sels ⟫ⁿ) nt2 v =
   begin
-    ⟦⌈ normNCmp ⟪ sels ⟫ⁿ nt2 ⌉⟧ v
+    ⟦⌈ ⟪ sels ⟫ⁿ ○ nt2 ⌉⟧ v
       ≡⟨ refl ⟩
     ⟦⌈ nt2 !!ⁿ sels ⌉⟧ v
       ≡⟨ ⟦⌈⌉⟧∘!!ⁿ nt2 sels v ⟩
@@ -556,19 +556,19 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
     ⟦⌈ ⟪ sels ⟫ⁿ ⌉⟧ (⟦⌈ nt2 ⌉⟧ v)
   ∎
 
-⟦⌈⌉⟧∘normNCmp (IfNilⁿ sels nt' nt'') nt2 v =
+⟦⌈⌉⟧∘○ (IfNilⁿ sels nt' nt'') nt2 v =
   begin
-    ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') nt2 ⌉⟧ v
+    ⟦⌈ IfNilⁿ sels nt' nt'' ○ nt2 ⌉⟧ v
       ≡⟨ helper nt2 ⟩
     ifNil (⟦⌈ nt2 !!ⁿ sels ⌉⟧ v)
-          (⟦⌈ normNCmp nt' nt2 ⌉⟧ v) (⟦⌈ normNCmp nt'' nt2 ⌉⟧ v)
+          (⟦⌈ nt' ○ nt2 ⌉⟧ v) (⟦⌈ nt'' ○ nt2 ⌉⟧ v)
       ≡⟨ ifNil-cong (⟦⌈⌉⟧∘!!ⁿ nt2 sels v) refl refl ⟩
     ifNil (⟦⌈ nt2 ⌉⟧ v !! sels)
-          (⟦⌈ normNCmp nt' nt2 ⌉⟧ v) (⟦⌈ normNCmp nt'' nt2 ⌉⟧ v)
+          (⟦⌈ nt' ○ nt2 ⌉⟧ v) (⟦⌈ nt'' ○ nt2 ⌉⟧ v)
       ≡⟨ ifNil-cong (sym $
            ⟦⟧∘⟪⟫ sels (⟦ ⌈ nt2 ⌉ ⟧ v))
-           (⟦⌈⌉⟧∘normNCmp nt' nt2 v)
-           (⟦⌈⌉⟧∘normNCmp nt'' nt2 v) ⟩
+           (⟦⌈⌉⟧∘○ nt' nt2 v)
+           (⟦⌈⌉⟧∘○ nt'' nt2 v) ⟩
     ifNil (⟦ ⟪ sels ⟫ ⟧ (⟦⌈ nt2 ⌉⟧ v))
           (⟦⌈ nt' ⌉⟧ (⟦⌈ nt2 ⌉⟧ v)) (⟦⌈ nt'' ⌉⟧(⟦⌈ nt2 ⌉⟧ v))
       ≡⟨ refl ⟩
@@ -576,13 +576,13 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
   ∎
   where
     helper : (nt2 : NTrm) →
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') nt2 ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ nt2 ⌉⟧ v
       ≡
       ifNil (⟦⌈ nt2 !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' nt2 ⌉⟧ v) (⟦⌈ normNCmp nt'' nt2 ⌉⟧ v)
+            (⟦⌈ nt' ○ nt2 ⌉⟧ v) (⟦⌈ nt'' ○ nt2 ⌉⟧ v)
 
     helper ⟪ sels' ⟫ⁿ = begin
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') ⟪ sels' ⟫ⁿ ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v
         ≡⟨ refl ⟩
       ifNil (⟦ ⟪ sels' ++ sels ⟫ ⟧ v)
             (⟦⌈ nt' ○⟪ sels' ⟫ⁿ ⌉⟧ v) (⟦⌈ nt'' ○⟪ sels' ⟫ⁿ ⌉⟧ v)
@@ -600,38 +600,38 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
             (⟦⌈ nt'' ⌉⟧ (⟦⌈ ⟪ sels' ⟫ⁿ ⌉⟧ v))
         ≡⟨ ifNil-cong
              (cong (flip _!!_ sels) (sym (⟦⟧∘⟪⟫ sels' v)))
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt' ⟪ sels' ⟫ⁿ v)
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt'' ⟪ sels' ⟫ⁿ v) ⟩
+             (sym $ ⟦⌈⌉⟧∘○ nt' ⟪ sels' ⟫ⁿ v)
+             (sym $ ⟦⌈⌉⟧∘○ nt'' ⟪ sels' ⟫ⁿ v) ⟩
       ifNil (⟦ ⟪ sels' ⟫ ⟧ v !! sels)
-            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt'' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
         ≡⟨ refl ⟩
       ifNil (⟦⌈ ⟪ sels' ⟫ⁿ ⌉⟧ v !! sels)
-            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt'' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
         ≡⟨ ifNil-cong
              (sym (⟦⌈⌉⟧∘!!ⁿ ⟪ sels' ⟫ⁿ sels v))
              refl refl ⟩
       ifNil (⟦⌈ ⟪ sels' ⟫ⁿ !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' ⟪ sels' ⟫ⁿ ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
+            (⟦⌈ nt'' ○ ⟪ sels' ⟫ⁿ ⌉⟧ v)
       ∎
 
     helper (IfNilⁿ sels' nt1 nt3) = begin
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') (IfNilⁿ sels' nt1 nt3) ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ IfNilⁿ sels' nt1 nt3 ⌉⟧ v
         ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-                (normNCmp∘IfNilⁿ sels sels' nt' nt'' nt1 nt3) ⟩
+                (○∘IfNilⁿ sels sels' nt' nt'' nt1 nt3) ⟩
       ⟦⌈ IfNilⁿ sels'
-                (normNCmp (IfNilⁿ sels nt' nt'') nt1)
-                (normNCmp (IfNilⁿ sels nt' nt'') nt3) ⌉⟧ v
+                (IfNilⁿ sels nt' nt'' ○ nt1)
+                (IfNilⁿ sels nt' nt'' ○ nt3) ⌉⟧ v
         ≡⟨ refl ⟩
       ifNil (⟦ ⟪ sels' ⟫ ⟧ v)
-            (⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') nt1 ⌉⟧ v)
-            (⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') nt3 ⌉⟧ v)
+            (⟦⌈ IfNilⁿ sels nt' nt'' ○ nt1 ⌉⟧ v)
+            (⟦⌈ IfNilⁿ sels nt' nt'' ○ nt3 ⌉⟧ v)
         ≡⟨ ifNil-cong
              (⟦⟧∘⟪⟫ sels' v)
-             (⟦⌈⌉⟧∘normNCmp (IfNilⁿ sels nt' nt'') nt1 v)
-             (⟦⌈⌉⟧∘normNCmp (IfNilⁿ sels nt' nt'') nt3 v) ⟩
+             (⟦⌈⌉⟧∘○ (IfNilⁿ sels nt' nt'') nt1 v)
+             (⟦⌈⌉⟧∘○ (IfNilⁿ sels nt' nt'') nt3 v) ⟩
       ifNil (v !! sels')
         (⟦⌈ IfNilⁿ sels nt' nt'' ⌉⟧ (⟦⌈ nt1 ⌉⟧ v))
         (⟦⌈ IfNilⁿ sels nt' nt'' ⌉⟧ (⟦⌈ nt3 ⌉⟧ v))
@@ -700,11 +700,11 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
             (⟦⌈ nt'' ⌉⟧ (⟦⌈ IfNilⁿ sels' nt1 nt3 ⌉⟧ v))
         ≡⟨ ifNil-cong
              (sym $ ⟦⌈⌉⟧∘!!ⁿ (IfNilⁿ sels' nt1 nt3) sels v)
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt' (IfNilⁿ sels' nt1 nt3) v)
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt'' (IfNilⁿ sels' nt1 nt3) v) ⟩
+             (sym $ ⟦⌈⌉⟧∘○ nt' (IfNilⁿ sels' nt1 nt3) v)
+             (sym $ ⟦⌈⌉⟧∘○ nt'' (IfNilⁿ sels' nt1 nt3) v) ⟩
       ifNil (⟦⌈ IfNilⁿ sels' nt1 nt3 !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' (IfNilⁿ sels' nt1 nt3) ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' (IfNilⁿ sels' nt1 nt3) ⌉⟧ v)
+            (⟦⌈ nt' ○ IfNilⁿ sels' nt1 nt3 ⌉⟧ v)
+            (⟦⌈ nt'' ○ (IfNilⁿ sels' nt1 nt3) ⌉⟧ v)
       ∎
       where
         helper₂ : ∀ w (u1 u3 : Val) (f1 f2 : Val → Val) (v1 v3 : Val) →
@@ -718,106 +718,101 @@ normNCmp∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
         helper₂ ↯ˣ     u1 u3 f1 f2 v1 v3 = refl
 
     helper []ⁿ = begin
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') []ⁿ ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ []ⁿ ⌉⟧ v
         ≡⟨ refl ⟩
-      ⟦⌈ normNIf ([]ⁿ !!ⁿ sels)
-                 (normNCmp nt' []ⁿ) (normNCmp nt'' []ⁿ) ⌉⟧ v
-        ≡⟨ ⟦⌈⌉⟧∘normNIf
-             ([]ⁿ !!ⁿ sels)
-             (normNCmp nt' []ⁿ) (normNCmp nt'' []ⁿ) v ⟩
+      ⟦⌈ IfNilⁿ⟱ ([]ⁿ !!ⁿ sels) (nt' ○ []ⁿ) (nt'' ○ []ⁿ) ⌉⟧ v
+        ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱ ([]ⁿ !!ⁿ sels) (nt' ○ []ⁿ) (nt'' ○ []ⁿ) v ⟩
       ifNil (⟦⌈ []ⁿ !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' []ⁿ ⌉⟧ v) (⟦⌈ normNCmp nt'' []ⁿ ⌉⟧ v)
+            (⟦⌈ nt' ○ []ⁿ ⌉⟧ v) (⟦⌈ nt'' ○ []ⁿ ⌉⟧ v)
       ∎
 
     helper (nt1 ∷ⁿ nt3) = begin
-      ⟦⌈ normNCmp (IfNilⁿ sels nt' nt'') (nt1 ∷ⁿ nt3) ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ nt1 ∷ⁿ nt3 ⌉⟧ v
         ≡⟨ refl ⟩
-      ⟦⌈ normNIf (nt1 ∷ⁿ nt3 !!ⁿ sels)
-                 (normNCmp nt' (nt1 ∷ⁿ nt3))
-                 (normNCmp nt'' (nt1 ∷ⁿ nt3)) ⌉⟧ v
-        ≡⟨ ⟦⌈⌉⟧∘normNIf
+      ⟦⌈ IfNilⁿ⟱ (nt1 ∷ⁿ nt3 !!ⁿ sels)
+                 (nt' ○ nt1 ∷ⁿ nt3) (nt'' ○ nt1 ∷ⁿ nt3) ⌉⟧ v
+        ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱
              (nt1 ∷ⁿ nt3 !!ⁿ sels)
-             (normNCmp nt' (nt1 ∷ⁿ nt3)) (normNCmp nt'' (nt1 ∷ⁿ nt3)) v ⟩
+             (nt' ○ nt1 ∷ⁿ nt3) (nt'' ○ nt1 ∷ⁿ nt3) v ⟩
       ifNil (⟦⌈ nt1 ∷ⁿ nt3 !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' (nt1 ∷ⁿ nt3) ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' (nt1 ∷ⁿ nt3) ⌉⟧ v)
+            (⟦⌈ nt' ○ nt1 ∷ⁿ nt3 ⌉⟧ v)
+            (⟦⌈ nt'' ○ nt1 ∷ⁿ nt3 ⌉⟧ v)
       ∎
 
     helper ↯ⁿ = begin
-      ⟦⌈ (normNCmp (IfNilⁿ sels nt' nt'') ↯ⁿ) ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ ↯ⁿ ⌉⟧ v
         ≡⟨ refl ⟩
-      ⟦⌈ normNIf (↯ⁿ !!ⁿ sels)
-                 (normNCmp nt' ↯ⁿ) (normNCmp nt'' ↯ⁿ) ⌉⟧ v
-        ≡⟨ ⟦⌈⌉⟧∘normNIf (↯ⁿ !!ⁿ sels)
-                          (normNCmp nt' ↯ⁿ) (normNCmp nt'' ↯ⁿ) v ⟩
+      ⟦⌈ IfNilⁿ⟱ (↯ⁿ !!ⁿ sels)
+                 (nt' ○ ↯ⁿ) (nt'' ○ ↯ⁿ) ⌉⟧ v
+        ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱ (↯ⁿ !!ⁿ sels) (nt' ○ ↯ⁿ) (nt'' ○ ↯ⁿ) v ⟩
       ifNil (⟦⌈ ↯ⁿ !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ normNCmp nt' ↯ⁿ ⌉⟧ v)
-            (⟦⌈ normNCmp nt'' ↯ⁿ ⌉⟧ v)
+            (⟦⌈ nt' ○ ↯ⁿ ⌉⟧ v)
+            (⟦⌈ nt'' ○ ↯ⁿ ⌉⟧ v)
       ∎
 
-⟦⌈⌉⟧∘normNCmp ↯ⁿ nt2 v =
+⟦⌈⌉⟧∘○ ↯ⁿ nt2 v =
   refl
 
--- normConv
+-- ⌋_⌊
 
-normConv : (t : Trm) → NTrm
+⌋_⌊ : (t : Trm) → NTrm
 
-normConv [] = []ⁿ
-normConv (t1 ∷ t2) = normConv t1  ∷ⁿ normConv t2
-normConv Hd = ⟪ [ HD ] ⟫ⁿ
-normConv Tl = ⟪ [ TL ] ⟫ⁿ
-normConv Id = ⟪ [] ⟫ⁿ
-normConv (t1 $$ t2) = normNCmp (normConv t1) (normConv t2)
-normConv (IfNil t0 t1 t2) = normNIf (normConv t0) (normConv t1) (normConv t2)
-normConv ↯ = ↯ⁿ
+⌋ [] ⌊ = []ⁿ
+⌋ t1 ∷ t2 ⌊ = ⌋ t1 ⌊  ∷ⁿ ⌋ t2 ⌊
+⌋ Hd ⌊ = ⟪ [ HD ] ⟫ⁿ
+⌋ Tl ⌊ = ⟪ [ TL ] ⟫ⁿ
+⌋ Id ⌊ = ⟪ [] ⟫ⁿ
+⌋ t1 $$ t2 ⌊ = ⌋ t1 ⌊ ○ ⌋ t2 ⌊
+⌋ IfNil t0 t1 t2 ⌊ = IfNilⁿ⟱ ⌋ t0 ⌊ ⌋ t1 ⌊ ⌋ t2 ⌊
+⌋ ↯ ⌊ = ↯ⁿ
 
 --
 -- The main theorem establishing the correctness of normalization.
 --
 
--- ⟦⌈⌉⟧∘normConv
+-- ⟦⌈⌉⟧∘⌋⌊
 
-⟦⌈⌉⟧∘normConv : (t : Trm) (v : Val) →
-  ⟦⌈ normConv t ⌉⟧ v ≡ ⟦ t ⟧ v
+⟦⌈⌉⟧∘⌋⌊ : (t : Trm) (v : Val) →
+  ⟦⌈ ⌋ t ⌊ ⌉⟧ v ≡ ⟦ t ⟧ v
 
-⟦⌈⌉⟧∘normConv [] v =
+⟦⌈⌉⟧∘⌋⌊ [] v =
   refl
-⟦⌈⌉⟧∘normConv (t1 ∷ t2) v
-  rewrite ⟦⌈⌉⟧∘normConv t1 v | ⟦⌈⌉⟧∘normConv t2 v
+⟦⌈⌉⟧∘⌋⌊ (t1 ∷ t2) v
+  rewrite ⟦⌈⌉⟧∘⌋⌊ t1 v | ⟦⌈⌉⟧∘⌋⌊ t2 v
   = refl
-⟦⌈⌉⟧∘normConv Hd v =
+⟦⌈⌉⟧∘⌋⌊ Hd v =
   refl
-⟦⌈⌉⟧∘normConv Tl v =
+⟦⌈⌉⟧∘⌋⌊ Tl v =
   refl
-⟦⌈⌉⟧∘normConv Id v =
+⟦⌈⌉⟧∘⌋⌊ Id v =
   refl
-⟦⌈⌉⟧∘normConv (t1 $$ t2) v = begin
-  ⟦⌈ normConv (t1 $$ t2) ⌉⟧ v
+⟦⌈⌉⟧∘⌋⌊ (t1 $$ t2) v = begin
+  ⟦⌈ ⌋ t1 $$ t2 ⌊ ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ normNCmp (normConv t1) (normConv t2) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmp (normConv t1) (normConv t2) v ⟩
-  ⟦⌈ normConv t1 ⌉⟧ (⟦⌈ normConv t2 ⌉⟧ v)
-    ≡⟨ cong ⟦⌈ normConv t1 ⌉⟧ (⟦⌈⌉⟧∘normConv t2 v) ⟩
-  ⟦⌈ normConv t1 ⌉⟧ (⟦ t2 ⟧ v)
-    ≡⟨ ⟦⌈⌉⟧∘normConv t1 (⟦ t2 ⟧ v) ⟩
+  ⟦⌈ ⌋ t1 ⌊ ○ ⌋ t2 ⌊ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○ ⌋ t1 ⌊ ⌋ t2 ⌊ v ⟩
+  ⟦⌈ ⌋ t1 ⌊ ⌉⟧ (⟦⌈ ⌋ t2 ⌊ ⌉⟧ v)
+    ≡⟨ cong ⟦⌈ ⌋ t1 ⌊ ⌉⟧ (⟦⌈⌉⟧∘⌋⌊ t2 v) ⟩
+  ⟦⌈ ⌋ t1 ⌊ ⌉⟧ (⟦ t2 ⟧ v)
+    ≡⟨ ⟦⌈⌉⟧∘⌋⌊ t1 (⟦ t2 ⟧ v) ⟩
   ⟦ t1 ⟧ (⟦ t2 ⟧ v)
     ≡⟨ refl ⟩
   ⟦ t1 $$ t2 ⟧ v
   ∎
-⟦⌈⌉⟧∘normConv (IfNil t0 t1 t2) v = begin
-  ⟦⌈ normConv (IfNil t0 t1 t2) ⌉⟧ v
+⟦⌈⌉⟧∘⌋⌊ (IfNil t0 t1 t2) v = begin
+  ⟦⌈ ⌋ IfNil t0 t1 t2 ⌊ ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ normNIf (normConv t0) (normConv t1) (normConv t2) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNIf (normConv t0) (normConv t1) (normConv t2) v ⟩
-  ifNil (⟦⌈ normConv t0 ⌉⟧ v)
-        (⟦⌈ normConv t1 ⌉⟧ v) (⟦⌈ normConv t2 ⌉⟧ v)
-    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘normConv t0 v)
-                  (⟦⌈⌉⟧∘normConv t1 v) (⟦⌈⌉⟧∘normConv t2 v) ⟩
+  ⟦⌈ IfNilⁿ⟱ ⌋ t0 ⌊ ⌋ t1 ⌊ ⌋ t2 ⌊ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱ ⌋ t0 ⌊ ⌋ t1 ⌊ ⌋ t2 ⌊ v ⟩
+  ifNil (⟦⌈ ⌋ t0 ⌊ ⌉⟧ v)
+        (⟦⌈ ⌋ t1 ⌊ ⌉⟧ v) (⟦⌈ ⌋ t2 ⌊ ⌉⟧ v)
+    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘⌋⌊ t0 v)
+                  (⟦⌈⌉⟧∘⌋⌊ t1 v) (⟦⌈⌉⟧∘⌋⌊ t2 v) ⟩
   ifNil (⟦ t0 ⟧ v) (⟦ t1 ⟧ v) (⟦ t2 ⟧ v)
     ≡⟨ refl ⟩
   ⟦ IfNil t0 t1 t2 ⟧ v
   ∎
-⟦⌈⌉⟧∘normConv ↯ v =
+⟦⌈⌉⟧∘⌋⌊ ↯ v =
   refl
 
 --

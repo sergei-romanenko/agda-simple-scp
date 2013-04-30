@@ -244,8 +244,8 @@ strictNTrm? ↯ⁿ = yes refl
 
 strictTrm? : (t : Trm) → Dec (StrictTrm t)
 strictTrm? t
-  rewrite P.sym $ ⟦⌈⌉⟧∘normConv t ↯ˣ
-  = strictNTrm? (normConv t)
+  rewrite P.sym $ ⟦⌈⌉⟧∘⌋⌊ t ↯ˣ
+  = strictNTrm? ⌋ t ⌊
 
 ----------------------------------------------------------
 -- Evaluation semantics for SWhile programs.

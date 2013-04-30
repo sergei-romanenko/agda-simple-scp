@@ -18,8 +18,6 @@ open import Function.Equivalence as Equiv
   using (module Equivalence; _⇔_; equivalence)
 
 open import Relation.Nullary
-open import Relation.Nullary.Decidable
-  using (⌊_⌋)
 
 open import Relation.Binary.PropositionalEquality as P
   using (_≡_; _≢_; refl; trans; cong; subst; inspect; module ≡-Reasoning)
@@ -121,7 +119,7 @@ sscp alwaysJust n knf =
   sscpCore alwaysJust unrollToInit n knf
 
 
--- Alternatively, we define a cut-down version, which uses `normConv`
+-- Alternatively, we define a cut-down version, which uses `⌋_⌊`
 -- instead of `norm` during loop unrolling.
 -- In essence, it is a simple deforestation analog of the above supercompiler.
 
@@ -132,7 +130,7 @@ unrollToInit′ : KNFProg → KNFProg
 unrollToInit′ (KNF init cond body final) =
   KNF newInit cond body final
   where
-    nrm = λ (t : Trm) → ⌈ normConv t ⌉
+    nrm = λ (t : Trm) → ⌈ ⌋ t ⌊ ⌉
     newInit = nrm ((IfNil cond Id body) $$ init)
 
 -- sscp′

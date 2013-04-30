@@ -38,8 +38,8 @@ propagateIfCond (nt1 ∷ⁿ nt2) =
 propagateIfCond ⟪ sels ⟫ⁿ = ⟪ sels ⟫ⁿ
 propagateIfCond (IfNilⁿ sels nt1 nt2) =
   IfNilⁿ sels
-    (normNCmp (propagateIfCond nt1) (setNilAt sels))
-    (normNCmp (propagateIfCond nt2) (setConsAt sels))
+    (propagateIfCond nt1 ○ setNilAt sels)
+    (propagateIfCond nt2 ○ setConsAt sels)
 propagateIfCond ↯ⁿ = ↯ⁿ
 
 -- Establishing the correctness of `propagateIfCond` is once again decomposed
@@ -396,8 +396,8 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
 
 condPropagatorsPreserveEval :
   (sels : List Selector) (nt1 nt2 : NTrm) (v : Val) →
-    ⟦⌈ IfNilⁿ sels (normNCmp nt1 (setNilAt sels))
-                   (normNCmp nt2 (setConsAt sels)) ⌉⟧ v
+    ⟦⌈ IfNilⁿ sels (nt1 ○ setNilAt sels)
+                   (nt2 ○ (setConsAt sels)) ⌉⟧ v
   ≡
   ⟦⌈ IfNilⁿ sels nt1 nt2 ⌉⟧ v
 
@@ -406,16 +406,16 @@ condPropagatorsPreserveEval sels nt1 nt2 v
   with v !! sels | inspect (_!!_ v) sels 
 
 ... | []ˣ | [ ≡[]ˣ ]ⁱ = begin
-  ⟦⌈ normNCmp nt1 (setNilAt sels) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmp nt1 (setNilAt sels) v ⟩
+  ⟦⌈ nt1 ○ setNilAt sels ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○ nt1 (setNilAt sels) v ⟩
   ⟦⌈ nt1 ⌉⟧ (⟦⌈ setNilAt sels ⌉⟧ v)
     ≡⟨ cong ⟦⌈ nt1 ⌉⟧ (⟦⌈⌉⟧∘setNilAt sels v ≡[]ˣ) ⟩
   ⟦⌈ nt1 ⌉⟧ v
   ∎
 
 ... | _ ∷ˣ _ | [ ≡∷ˣ ]ⁱ = begin
-  ⟦⌈ normNCmp nt2 (setConsAt sels) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmp nt2 (setConsAt sels) v ⟩
+  ⟦⌈ nt2 ○ setConsAt sels ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○ nt2 (setConsAt sels) v ⟩
   ⟦⌈ nt2 ⌉⟧ (⟦⌈ setConsAt sels ⌉⟧ v)
     ≡⟨ cong ⟦⌈ nt2 ⌉⟧ (⟦⌈⌉⟧∘setConsAt sels v ≡∷ˣ) ⟩
   ⟦⌈ nt2 ⌉⟧ v   
@@ -442,15 +442,15 @@ condPropagatorsPreserveEval sels nt1 nt2 v
 ⟦⌈⌉⟧∘propagateIfCond (IfNilⁿ sels nt1 nt2) v = begin
   ⟦⌈ propagateIfCond (IfNilⁿ sels nt1 nt2) ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ IfNilⁿ sels (normNCmp (propagateIfCond nt1) (setNilAt sels))
-                 (normNCmp (propagateIfCond nt2) (setConsAt sels)) ⌉⟧ v
+  ⟦⌈ IfNilⁿ sels (propagateIfCond nt1 ○ setNilAt sels)
+                 (propagateIfCond nt2 ○ setConsAt sels) ⌉⟧ v
     ≡⟨ refl ⟩
   ifNil (⟦ ⟪ sels ⟫ ⟧ v)
-        (⟦⌈ normNCmp (propagateIfCond nt1) (setNilAt sels) ⌉⟧ v)
-        (⟦⌈ normNCmp (propagateIfCond nt2) (setConsAt sels) ⌉⟧ v)
+        (⟦⌈ propagateIfCond nt1 ○ setNilAt sels ⌉⟧ v)
+        (⟦⌈ propagateIfCond nt2 ○ setConsAt sels ⌉⟧ v)
     ≡⟨ cong₂ (ifNil (⟦ ⟪ sels ⟫ ⟧ v))
-             (⟦⌈⌉⟧∘normNCmp (propagateIfCond nt1) (setNilAt sels) v)
-             (⟦⌈⌉⟧∘normNCmp (propagateIfCond nt2) (setConsAt sels) v) ⟩
+             (⟦⌈⌉⟧∘○ (propagateIfCond nt1) (setNilAt sels) v)
+             (⟦⌈⌉⟧∘○ (propagateIfCond nt2) (setConsAt sels) v) ⟩
   ifNil (⟦ ⟪ sels ⟫ ⟧ v)
         (⟦⌈ propagateIfCond nt1 ⌉⟧ (⟦⌈ (setNilAt sels) ⌉⟧ v))
         (⟦⌈ propagateIfCond nt2 ⌉⟧ (⟦⌈ setConsAt sels ⌉⟧ v))
@@ -461,14 +461,14 @@ condPropagatorsPreserveEval sels nt1 nt2 v
         (⟦⌈ nt1 ⌉⟧ (⟦⌈ setNilAt sels ⌉⟧ v))
         (⟦⌈ nt2 ⌉⟧ (⟦⌈ setConsAt sels ⌉⟧ v))
     ≡⟨ cong₂ (ifNil (⟦ ⟪ sels ⟫ ⟧ v))
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt1 (setNilAt sels) v)
-             (sym $ ⟦⌈⌉⟧∘normNCmp nt2 (setConsAt sels) v) ⟩
+             (sym $ ⟦⌈⌉⟧∘○ nt1 (setNilAt sels) v)
+             (sym $ ⟦⌈⌉⟧∘○ nt2 (setConsAt sels) v) ⟩
   ifNil (⟦ ⟪ sels ⟫ ⟧ v)
-        (⟦⌈ normNCmp nt1 (setNilAt sels) ⌉⟧ v)
-        (⟦⌈ normNCmp nt2 (setConsAt sels) ⌉⟧ v)
+        (⟦⌈ nt1 ○ setNilAt sels ⌉⟧ v)
+        (⟦⌈ nt2 ○ setConsAt sels ⌉⟧ v)
     ≡⟨ refl ⟩
-  ⟦⌈ IfNilⁿ sels (normNCmp nt1 (setNilAt sels))
-                 (normNCmp nt2 (setConsAt sels)) ⌉⟧ v
+  ⟦⌈ IfNilⁿ sels (nt1 ○ setNilAt sels)
+                 (nt2 ○ setConsAt sels) ⌉⟧ v
     ≡⟨ condPropagatorsPreserveEval sels nt1 nt2 v ⟩
   ⟦⌈ IfNilⁿ sels nt1 nt2 ⌉⟧ v
   ∎
@@ -484,7 +484,7 @@ condPropagatorsPreserveEval sels nt1 nt2 v
 -- and trivially establish its correctness.
 
 norm : (t : Trm) → NTrm
-norm t = propagateIfCond (normConv t)
+norm t = propagateIfCond ⌋ t ⌊
 
 -- ⟦⌈⌉⟧∘norm
 
@@ -493,10 +493,10 @@ norm t = propagateIfCond (normConv t)
 ⟦⌈⌉⟧∘norm t v = begin
   ⟦⌈ norm t ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ propagateIfCond (normConv t) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘propagateIfCond (normConv t) v ⟩
-  ⟦⌈ normConv t ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normConv t v ⟩
+  ⟦⌈ propagateIfCond ⌋ t ⌊ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘propagateIfCond ⌋ t ⌊ v ⟩
+  ⟦⌈ ⌋ t ⌊ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘⌋⌊ t v ⟩
   ⟦ t ⟧ v
   ∎
 

@@ -13,21 +13,20 @@ open import ImpLang
 open import LoopUnrollingScp
 
 norm₁ :
-  ⌈ normConv ((IfNil Hd (Tl $$ Tl ∷ Hd $$ Tl) Tl) $$ ([] ∷ Id)) ⌉
+  ⌈ ⌋ (IfNil Hd (Tl $$ Tl ∷ Hd $$ Tl) Tl) $$ ([] ∷ Id) ⌊ ⌉
   ≡ Tl ∷ Hd
 norm₁ = refl
 
 
 replaceAt₁ :
-  ⌈  replaceAt (HD ∷ []) (normConv Id) (normConv ([] ∷ [])) ⌉
+  ⌈  replaceAt (HD ∷ []) (⌋ Id ⌊) (⌋ [] ∷ [] ⌊) ⌉
   ≡ ([] ∷ []) ∷ Tl
 replaceAt₁ = refl
 
 module replaceAt₂ where
-  nt1 = normConv (IfNil Hd (Hd $$ Tl) (Tl $$ Tl))
-  nt2 = normConv (Tl $$ Hd $$ Tl ∷ Hd $$ Hd $$ Tl)
-  prop : ⌈ normNCmp nt1 (replaceAt (TL ∷ HD ∷ [])
-                            (normConv Id) nt2) ⌉
+  nt1 = ⌋ IfNil Hd (Hd $$ Tl) (Tl $$ Tl) ⌊
+  nt2 = ⌋ Tl $$ Hd $$ Tl ∷ Hd $$ Hd $$ Tl ⌊
+  prop : ⌈ nt1 ○ (replaceAt (TL ∷ HD ∷ []) (⌋ Id ⌊) nt2) ⌉
          ≡ IfNil Hd (Tl $$ Hd $$ Tl ∷ Hd $$ Hd $$ Tl) (Tl $$ Tl)
   prop = refl
 
