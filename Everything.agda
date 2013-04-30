@@ -2,6 +2,7 @@ module Everything where
 
 open import Util
 open import ExpLang
+open import PositiveInfo
 open import ImpLang
 open import LoopUnrolling
 open import HomEmb

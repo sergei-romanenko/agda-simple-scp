@@ -49,7 +49,7 @@ propagateIfCond ↯ⁿ = ↯ⁿ
 
 setNilAtPreservesEval′ : (sels1 sels2 : List Selector) →
   replaceAt sels1 ⟪ sels2 ⟫ⁿ []ⁿ
-    ≡ normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) sels2
+    ≡ replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ
 
 setNilAtPreservesEval′ [] sels2 = refl
 
@@ -60,19 +60,17 @@ setNilAtPreservesEval′ (HD ∷ sels1) sels2 =
     replaceAt sels1 ⟪ sels2 ++ [ HD ] ⟫ⁿ []ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ cong (flip _∷ⁿ_ ⟪ sels2 ++ [ TL ] ⟫ⁿ)
               (setNilAtPreservesEval′ sels1 (sels2 ++ [ HD ])) ⟩
-    normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) (sels2 ++ [ HD ]) ∷ⁿ
+    (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ++ [ HD ] ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
+      ≡⟨ cong (flip _∷ⁿ_ (⟪ sels2 ++ [ TL ] ⟫ⁿ))
+              (∘⟪⟫ⁿ∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) sels2 [ HD ]) ⟩
+    (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ
       ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ cong (flip _∷ⁿ_ (⟪ sels2 ++ [ TL ] ⟫ⁿ))
-              (normNCmpSels∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) sels2 [ HD ]) ⟩
-    normNCmpSels
-      (normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) [ HD ]) sels2 ∷ⁿ
-        ⟪ (sels2 ++ [ TL ]) ⟫ⁿ
-      ≡⟨ cong (flip _∷ⁿ_ (⟪ sels2 ++ [ TL ] ⟫ⁿ))
-              (cong (flip normNCmpSels sels2)
+              (cong (flip _○⟪_⟫ⁿ sels2)
                     (sym $ setNilAtPreservesEval′ sels1 [ HD ])) ⟩
-    normNCmpSels (replaceAt sels1 ⟪ [ HD ] ⟫ⁿ []ⁿ) sels2 ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
+    (replaceAt sels1 ⟪ [ HD ] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ refl ⟩
-    normNCmpSels (replaceAt (HD ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ) sels2
+    replaceAt (HD ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ
   ∎
 
 setNilAtPreservesEval′ (TL ∷ sels1) sels2 =
@@ -83,19 +81,19 @@ setNilAtPreservesEval′ (TL ∷ sels1) sels2 =
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
               (setNilAtPreservesEval′ sels1 (sels2 ++ [ TL ])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) (sels2 ++ [ TL ])
+      (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ++ [ TL ] ⟫ⁿ)
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
-              (normNCmpSels∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ)
+              (∘⟪⟫ⁿ∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ)
                                sels2 (TL ∷ [])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      normNCmpSels (normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) [ TL ]) sels2
+      (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ [ TL ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ)
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
-              (cong (flip normNCmpSels sels2)
+              (cong (flip _○⟪_⟫ⁿ sels2)
                     (sym $ setNilAtPreservesEval′ sels1 [ TL ])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      normNCmpSels (replaceAt sels1 ⟪ [ TL ] ⟫ⁿ []ⁿ) sels2
+      ( replaceAt sels1 ⟪ [ TL ] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ)
       ≡⟨ refl ⟩
-    normNCmpSels (replaceAt (TL ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ) sels2
+    (replaceAt (TL ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ) ○⟪ sels2 ⟫ⁿ
   ∎
 
 -- setConsAtPreservesEval′
@@ -104,9 +102,9 @@ setConsAtPreservesEval′ : (sels1 sels2 : List Selector) →
   replaceAt sels1 ⟪ sels2 ⟫ⁿ
             (⟪ sels2 ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ sels1 ++ [ TL ] ⟫ⁿ)
   ≡
-  normNCmpSels (replaceAt sels1 ⟪ [] ⟫ⁿ
-                          (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
-               sels2
+  replaceAt sels1 ⟪ [] ⟫ⁿ
+            (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ 
+               
 
 setConsAtPreservesEval′ [] sels2 = refl
 
@@ -121,27 +119,23 @@ setConsAtPreservesEval′ (HD ∷ sels1) sels2
                 (⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
                   ⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ TL ] ⟫ⁿ)
         ≡⟨ setConsAtPreservesEval′ sels1 (sels2 ++ [ HD ]) ⟩
-      normNCmpSels
-          (replaceAt sels1 ⟪ [] ⟫ⁿ
-                     (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
-          (sels2 ++ [ HD ])
-        ≡⟨ normNCmpSels∘++
+      replaceAt sels1 ⟪ [] ⟫ⁿ
+                (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ)
+                  ○⟪ (sels2 ++ [ HD ]) ⟫ⁿ
+        ≡⟨ ∘⟪⟫ⁿ∘++
              (replaceAt sels1 (⟪ [] ⟫ⁿ)
                         (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
              sels2 [ HD ] ⟩
-      normNCmpSels
-        (normNCmpSels
-          (replaceAt sels1 ⟪ [] ⟫ⁿ
-                     (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ (sels1 ++ [ TL ]) ⟫ⁿ))
-          [ HD ])
-        sels2
-        ≡⟨ cong (flip normNCmpSels sels2)
+      (replaceAt sels1 ⟪ [] ⟫ⁿ
+                 (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ (sels1 ++ [ TL ]) ⟫ⁿ))
+                   ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ
+        ≡⟨ cong (flip _○⟪_⟫ⁿ sels2)
                 (sym $ setConsAtPreservesEval′ sels1 [ HD ]) ⟩
-      normNCmpSels
-          (replaceAt sels1 ⟪ [ HD ] ⟫ⁿ
-            (⟪ [ HD ] ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
-              ⟪ [ HD ] ++ sels1 ++ [ TL ] ⟫ⁿ))
-          sels2
+      replaceAt sels1 ⟪ [ HD ] ⟫ⁿ
+                (⟪ [ HD ] ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
+                  ⟪ [ HD ] ++ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ
+          
+          
       ∎
 
 setConsAtPreservesEval′ (TL ∷ sels1) sels2
@@ -149,7 +143,7 @@ setConsAtPreservesEval′ (TL ∷ sels1) sels2
         | sym $ LM.assoc sels2 [ TL ] (sels1 ++ [ HD ])
         | setConsAtPreservesEval′ sels1 (sels2 ++ [ TL ])
         | setConsAtPreservesEval′ sels1 [ TL ]
-        | normNCmpSels∘++
+        | ∘⟪⟫ⁿ∘++
              (replaceAt sels1 ⟪ [] ⟫ⁿ
                (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
              sels2 (TL ∷ [])
@@ -166,26 +160,25 @@ setNilAtPreservesEval′′ v sels1 sels2 = begin
   (⟦⌈ setNilAt (sels1 ++ sels2) ⌉⟧ v) !! sels1
     ≡⟨ refl ⟩
   (⟦⌈ (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ) ⌉⟧ v) !! sels1
-    ≡⟨ sym $ ⟦⌈⌉⟧∘normSelsNCmp
+    ≡⟨ sym $ ⟦⌈⌉⟧∘!!ⁿ
                (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ) sels1 v ⟩
-  ⟦⌈ normSelsNCmp (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ) sels1 ⌉⟧ v
+  ⟦⌈ replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (flip normSelsNCmp sels1)
+            (cong (flip _!!ⁿ_ sels1)
                   (replaceAt∘++ sels1 sels2 (⟪ [] ⟫ⁿ) []ⁿ)) ⟩
-  ⟦⌈ normSelsNCmp (replaceAt sels1 (⟪ [] ⟫ⁿ)
-                    (replaceAt sels2 (normSelsNCmp ⟪ [] ⟫ⁿ sels1) []ⁿ))
-                       sels1 ⌉⟧ v
+  ⟦⌈ replaceAt sels1 ⟪ [] ⟫ⁿ
+               (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (normSelsNCmp∘replaceAt sels1 ⟪ [] ⟫ⁿ
-              (replaceAt sels2 (normSelsNCmp ⟪ [] ⟫ⁿ sels1) []ⁿ)) ⟩
-  ⟦⌈ replaceAt sels2 (normSelsNCmp ⟪ [] ⟫ⁿ sels1) []ⁿ ⌉⟧ v
+            (!!ⁿ∘replaceAt sels1 ⟪ [] ⟫ⁿ
+              (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ)) ⟩
+  ⟦⌈ replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (flip (replaceAt sels2) []ⁿ)
-                  (normSelsNCmp∘⟪⟫ⁿ [] sels1)) ⟩
+                  (!!ⁿ∘⟪⟫ⁿ [] sels1)) ⟩
   ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ []ⁿ ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v) (setNilAtPreservesEval′ sels2 sels1) ⟩
-  ⟦⌈ normNCmpSels (replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ) sels1 ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmpSels (replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ) sels1 v ⟩
+  ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels1 ⟫ⁿ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○⟪⟫ⁿ (replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ) sels1 v ⟩
   ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v !! sels1)
     ≡⟨ refl ⟩
   ⟦⌈ setNilAt sels2 ⌉⟧ (v !! sels1)
@@ -199,37 +192,34 @@ setConsAtPreservesEval′′ : (v : Val) (sels1 sels2 : List Selector) →
 
 setConsAtPreservesEval′′ v sels1 sels2 = begin
   ⟦⌈ setConsAt (sels1 ++ sels2) ⌉⟧ v !! sels1
-    ≡⟨ sym $ ⟦⌈⌉⟧∘normSelsNCmp (setConsAt (sels1 ++ sels2)) sels1 v ⟩
-  ⟦⌈ normSelsNCmp (setConsAt (sels1 ++ sels2)) sels1 ⌉⟧ v
+    ≡⟨ sym $ ⟦⌈⌉⟧∘!!ⁿ (setConsAt (sels1 ++ sels2)) sels1 v ⟩
+  ⟦⌈ setConsAt (sels1 ++ sels2) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ normSelsNCmp (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ
-                             (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                               ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))
-                       sels1 ⌉⟧ v
+  ⟦⌈ replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ
+               (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+                  ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (flip normSelsNCmp sels1)
+            (cong (flip _!!ⁿ_ sels1)
                   (replaceAt∘++ sels1 sels2 (⟪ [] ⟫ⁿ)
                     (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
                       ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))) ⟩
-  ⟦⌈ normSelsNCmp
-           (replaceAt sels1 ⟪ [] ⟫ⁿ
-             (replaceAt sels2 (normSelsNCmp ⟪ [] ⟫ⁿ sels1)
-                        (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                          ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ)))
-           sels1 ⌉⟧ v
+  ⟦⌈ replaceAt sels1 ⟪ [] ⟫ⁿ
+               (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
+                          (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+                            ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ)) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (normSelsNCmp∘replaceAt sels1 (⟪ [] ⟫ⁿ)
-              (replaceAt sels2 (normSelsNCmp (⟪ [] ⟫ⁿ) sels1)
+            (!!ⁿ∘replaceAt sels1 (⟪ [] ⟫ⁿ)
+              (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
                          (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
                            ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))) ⟩
-  ⟦⌈ replaceAt sels2 (normSelsNCmp ⟪ [] ⟫ⁿ sels1)
+  ⟦⌈ replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
             (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
               ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (flip (replaceAt sels2)
                         (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
                           ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))
-                  (normSelsNCmp∘⟪⟫ⁿ [] sels1)) ⟩
+                  (!!ⁿ∘⟪⟫ⁿ [] sels1)) ⟩
   ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
                      (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
                        ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
@@ -245,16 +235,14 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
                   (cong (_∷ⁿ_ (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ))
                         (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ TL ])))) ⟩
   ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
-                     (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-                       ⟪ sels1 ++ sels2 ++ [ TL ] ⟫ⁿ) ⌉⟧ v
-    ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (setConsAtPreservesEval′ sels2 sels1) ⟩
-  ⟦⌈ normNCmpSels (replaceAt sels2 ⟪ [] ⟫ⁿ
-                             (⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ))
-            sels1 ⌉⟧ v
+               (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
+                  ⟪ sels1 ++ sels2 ++ [ TL ] ⟫ⁿ) ⌉⟧ v
+    ≡⟨ cong (flip ⟦⌈_⌉⟧ v) (setConsAtPreservesEval′ sels2 sels1) ⟩
+  ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ
+               (⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ) ○⟪ sels1 ⟫ⁿ ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ normNCmpSels (setConsAt sels2) sels1 ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘normNCmpSels (setConsAt sels2) sels1 v ⟩
+  ⟦⌈ setConsAt sels2 ○⟪ sels1 ⟫ⁿ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○⟪⟫ⁿ (setConsAt sels2) sels1 v ⟩
   ⟦⌈ setConsAt sels2 ⌉⟧ (v !! sels1)
   ∎
 
@@ -290,8 +278,7 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
     ⟦⌈ replaceAt sels ⟪ [ HD ] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
               (replaceAt∘⟪⟫ⁿ sels [ HD ] []ⁿ) ⟩
-    ⟦⌈ normSelsNCmp (replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ) [ HD ] ⌉⟧
-         (v1 ∷ˣ v2)
+    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ [ HD ] ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
     ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ refl ⟩
@@ -311,8 +298,7 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
     ⟦⌈ replaceAt sels ⟪ [ TL ] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
               (replaceAt∘⟪⟫ⁿ sels [ TL ] []ⁿ) ⟩
-    ⟦⌈ normSelsNCmp (replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ) [ TL ] ⌉⟧
-         (v1 ∷ˣ v2)
+    ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ [ TL ] ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
     ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ refl ⟩
@@ -354,16 +340,14 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
               (replaceAt∘⟪⟫ⁿ sels [ HD ]
                                  (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
                                    ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
-    ⟦⌈ normSelsNCmp (replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ
-                               (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
-                                 ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ))
-                         [ HD ] ⌉⟧
-           (v1 ∷ˣ v2)
+    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ
+                 (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) !!ⁿ
+                   [ HD ] ⌉⟧
+       (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
     ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ
                  (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
-                     (v1 ∷ˣ v2)
-             !! [ HD ]
+                     (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ refl ⟩
     ⟦⌈ setConsAt ([ HD ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ setConsAtPreservesEval′′ (v1 ∷ˣ v2) (HD ∷ []) sels ⟩
@@ -385,17 +369,15 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
               (replaceAt∘⟪⟫ⁿ sels [ TL ]
                              (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
                                ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
-    ⟦⌈ normSelsNCmp (replaceAt ([ TL ] ++ sels) (⟪ [] ⟫ⁿ)
-                               (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
-                                 ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ))
-                         [ TL ] ⌉⟧
+    ⟦⌈ replaceAt ([ TL ] ++ sels) (⟪ [] ⟫ⁿ)
+                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)
+                   !!ⁿ [ TL ] ⌉⟧
            (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
     ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ
-                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
-                   ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
+                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
                  (v1 ∷ˣ v2)
-             !! [ TL ]
+                   !! [ TL ]
       ≡⟨ refl ⟩
     ⟦⌈ setConsAt ([ TL ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ setConsAtPreservesEval′′ (v1 ∷ˣ v2) [ TL ] sels ⟩
