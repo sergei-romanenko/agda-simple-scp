@@ -18,14 +18,14 @@ open import ExpLang
 setNilAt : (sels : List Selector) → NTrm
 
 setNilAt sels =
-  replaceAt sels ⟪ [] ⟫ⁿ []ⁿ
+  ⟪ [] ⟫ⁿ [ sels ]≔ⁿ []ⁿ
 
 -- setConsAt
 
 setConsAt : (sels : List Selector) → NTrm
 
 setConsAt sels = 
-  replaceAt sels ⟪ [] ⟫ⁿ (⟪ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels ++ [ TL ] ⟫ⁿ)
+  ⟪ [] ⟫ⁿ [ sels ]≔ⁿ (⟪ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels ++ [ TL ] ⟫ⁿ)
 
 
 -- propagateIfCond
@@ -48,62 +48,61 @@ propagateIfCond ↯ⁿ = ↯ⁿ
 -- setNilAtPreservesEval′
 
 setNilAtPreservesEval′ : (sels1 sels2 : List Selector) →
-  replaceAt sels1 ⟪ sels2 ⟫ⁿ []ⁿ
-    ≡ replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ
+  ⟪ sels2 ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ
+    ≡ ⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ
 
 setNilAtPreservesEval′ [] sels2 = refl
 
 setNilAtPreservesEval′ (HD ∷ sels1) sels2 =
   begin
-    replaceAt (HD ∷ sels1) ⟪ sels2 ⟫ⁿ []ⁿ
+    ⟪ sels2 ⟫ⁿ [ HD ∷ sels1 ]≔ⁿ []ⁿ
       ≡⟨ refl ⟩
-    replaceAt sels1 ⟪ sels2 ++ [ HD ] ⟫ⁿ []ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
+    ⟪ sels2 ++ [ HD ] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ cong (flip _∷ⁿ_ ⟪ sels2 ++ [ TL ] ⟫ⁿ)
               (setNilAtPreservesEval′ sels1 (sels2 ++ [ HD ])) ⟩
-    (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ++ [ HD ] ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
+    (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ sels2 ++ [ HD ] ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ cong (flip _∷ⁿ_ (⟪ sels2 ++ [ TL ] ⟫ⁿ))
-              (∘⟪⟫ⁿ∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ) sels2 [ HD ]) ⟩
-    (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ
+              (○⟪⟫ⁿ∘++ (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ) sels2 [ HD ]) ⟩
+    (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ
       ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ cong (flip _∷ⁿ_ (⟪ sels2 ++ [ TL ] ⟫ⁿ))
               (cong (flip _○⟪_⟫ⁿ sels2)
                     (sym $ setNilAtPreservesEval′ sels1 [ HD ])) ⟩
-    (replaceAt sels1 ⟪ [ HD ] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
+    (⟪ [ HD ] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ) ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ
       ≡⟨ refl ⟩
-    replaceAt (HD ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ
+    ⟪ [] ⟫ⁿ [ HD ∷ sels1 ]≔ⁿ  []ⁿ ○⟪ sels2 ⟫ⁿ
   ∎
 
 setNilAtPreservesEval′ (TL ∷ sels1) sels2 =
   begin
-    replaceAt (TL ∷ sels1) ⟪ sels2 ⟫ⁿ []ⁿ
+    ⟪ sels2 ⟫ⁿ [ TL ∷ sels1 ]≔ⁿ []ⁿ
       ≡⟨ refl ⟩
-    ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ replaceAt sels1 ⟪ sels2 ++ [ TL ] ⟫ⁿ []ⁿ
+    ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
               (setNilAtPreservesEval′ sels1 (sels2 ++ [ TL ])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels2 ++ [ TL ] ⟫ⁿ)
+      (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ sels2 ++ [ TL ] ⟫ⁿ)
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
-              (∘⟪⟫ⁿ∘++ (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ)
-                               sels2 (TL ∷ [])) ⟩
+              (○⟪⟫ⁿ∘++ (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ) sels2 (TL ∷ [])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      (replaceAt sels1 ⟪ [] ⟫ⁿ []ⁿ ○⟪ [ TL ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ)
+      (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ [ TL ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ)
       ≡⟨ cong (_∷ⁿ_ ⟪ sels2 ++ [ HD ] ⟫ⁿ)
               (cong (flip _○⟪_⟫ⁿ sels2)
                     (sym $ setNilAtPreservesEval′ sels1 [ TL ])) ⟩
     ⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-      ( replaceAt sels1 ⟪ [ TL ] ⟫ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ)
+      (⟪ [ TL ] ⟫ⁿ [ sels1 ]≔ⁿ []ⁿ ○⟪ sels2 ⟫ⁿ)
       ≡⟨ refl ⟩
-    (replaceAt (TL ∷ sels1) ⟪ [] ⟫ⁿ []ⁿ) ○⟪ sels2 ⟫ⁿ
+    (⟪ [] ⟫ⁿ [ TL ∷ sels1 ]≔ⁿ []ⁿ) ○⟪ sels2 ⟫ⁿ
   ∎
 
 -- setConsAtPreservesEval′
 
 setConsAtPreservesEval′ : (sels1 sels2 : List Selector) →
-  replaceAt sels1 ⟪ sels2 ⟫ⁿ
-            (⟪ sels2 ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ sels1 ++ [ TL ] ⟫ⁿ)
+  ⟪ sels2 ⟫ⁿ [ sels1 ]≔ⁿ
+    (⟪ sels2 ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ sels1 ++ [ TL ] ⟫ⁿ)
   ≡
-  replaceAt sels1 ⟪ [] ⟫ⁿ
-            (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ 
+  ⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+    (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ 
                
 
 setConsAtPreservesEval′ [] sels2 = refl
@@ -115,27 +114,24 @@ setConsAtPreservesEval′ (HD ∷ sels1) sels2
          helper
   where
     helper = begin
-      replaceAt sels1 ⟪ sels2 ++ [ HD ] ⟫ⁿ
-                (⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
-                  ⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ TL ] ⟫ⁿ)
+      ⟪ sels2 ++ [ HD ] ⟫ⁿ [ sels1 ]≔ⁿ
+        (⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
+           ⟪ (sels2 ++ [ HD ]) ++ sels1 ++ [ TL ] ⟫ⁿ)
         ≡⟨ setConsAtPreservesEval′ sels1 (sels2 ++ [ HD ]) ⟩
-      replaceAt sels1 ⟪ [] ⟫ⁿ
-                (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ)
-                  ○⟪ (sels2 ++ [ HD ]) ⟫ⁿ
-        ≡⟨ ∘⟪⟫ⁿ∘++
-             (replaceAt sels1 (⟪ [] ⟫ⁿ)
-                        (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
-             sels2 [ HD ] ⟩
-      (replaceAt sels1 ⟪ [] ⟫ⁿ
-                 (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ (sels1 ++ [ TL ]) ⟫ⁿ))
-                   ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ
+      ⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+        (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ)
+           ○⟪ (sels2 ++ [ HD ]) ⟫ⁿ
+        ≡⟨ ○⟪⟫ⁿ∘++
+             (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+                (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ)) sels2 [ HD ] ⟩
+      (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+         (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ (sels1 ++ [ TL ]) ⟫ⁿ))
+            ○⟪ [ HD ] ⟫ⁿ ○⟪ sels2 ⟫ⁿ
         ≡⟨ cong (flip _○⟪_⟫ⁿ sels2)
                 (sym $ setConsAtPreservesEval′ sels1 [ HD ]) ⟩
-      replaceAt sels1 ⟪ [ HD ] ⟫ⁿ
-                (⟪ [ HD ] ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
-                  ⟪ [ HD ] ++ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ
-          
-          
+      ⟪ [ HD ] ⟫ⁿ [ sels1 ]≔ⁿ
+        (⟪ [ HD ] ++ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ
+           ⟪ [ HD ] ++ sels1 ++ [ TL ] ⟫ⁿ) ○⟪ sels2 ⟫ⁿ
       ∎
 
 setConsAtPreservesEval′ (TL ∷ sels1) sels2
@@ -143,11 +139,9 @@ setConsAtPreservesEval′ (TL ∷ sels1) sels2
         | sym $ LM.assoc sels2 [ TL ] (sels1 ++ [ HD ])
         | setConsAtPreservesEval′ sels1 (sels2 ++ [ TL ])
         | setConsAtPreservesEval′ sels1 [ TL ]
-        | ∘⟪⟫ⁿ∘++
-             (replaceAt sels1 ⟪ [] ⟫ⁿ
-               (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
-             sels2 (TL ∷ [])
-
+        | ○⟪⟫ⁿ∘++ (⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+                     (⟪ sels1 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels1 ++ [ TL ] ⟫ⁿ))
+                  sels2 (TL ∷ [])
   = refl
 
 -- setNilAtPreservesEval′′
@@ -157,29 +151,26 @@ setNilAtPreservesEval′′ : (v : Val) (sels1 sels2 : List Selector) →
     ≡ ⟦⌈ setNilAt sels2 ⌉⟧ (v !! sels1)
 
 setNilAtPreservesEval′′ v sels1 sels2 = begin
-  (⟦⌈ setNilAt (sels1 ++ sels2) ⌉⟧ v) !! sels1
+  ⟦⌈ setNilAt (sels1 ++ sels2) ⌉⟧ v !! sels1
     ≡⟨ refl ⟩
-  (⟦⌈ (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ) ⌉⟧ v) !! sels1
-    ≡⟨ sym $ ⟦⌈⌉⟧∘!!ⁿ
-               (replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ) sels1 v ⟩
-  ⟦⌈ replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ sels1 ⌉⟧ v
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels1 ++ sels2 ]≔ⁿ []ⁿ ⌉⟧ v !! sels1
+    ≡⟨ sym $ ⟦⌈⌉⟧∘!!ⁿ (⟪ [] ⟫ⁿ [ sels1 ++ sels2 ]≔ⁿ []ⁿ) sels1 v ⟩
+  ⟦⌈ ⟪ [] ⟫ⁿ [ (sels1 ++ sels2) ]≔ⁿ []ⁿ !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (flip _!!ⁿ_ sels1)
-                  (replaceAt∘++ sels1 sels2 (⟪ [] ⟫ⁿ) []ⁿ)) ⟩
-  ⟦⌈ replaceAt sels1 ⟪ [] ⟫ⁿ
-               (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ) !!ⁿ sels1 ⌉⟧ v
+                  ([]≔ⁿ∘++ sels1 sels2 ⟪ [] ⟫ⁿ []ⁿ)) ⟩
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ ((⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ []ⁿ) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (!!ⁿ∘replaceAt sels1 ⟪ [] ⟫ⁿ
-              (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ)) ⟩
-  ⟦⌈ replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1) []ⁿ ⌉⟧ v
+            (!!ⁿ∘[]≔ⁿ sels1 ⟪ [] ⟫ⁿ ((⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ []ⁿ)) ⟩
+  ⟦⌈ (⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ []ⁿ ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (flip (replaceAt sels2) []ⁿ)
-                  (!!ⁿ∘⟪⟫ⁿ [] sels1)) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ []ⁿ ⌉⟧ v
+            (cong₂ (flip _[_]≔ⁿ_ sels2)
+                   (!!ⁿ∘⟪⟫ⁿ [] sels1) refl) ⟩
+  ⟦⌈ ⟪ sels1 ⟫ⁿ [ sels2 ]≔ⁿ []ⁿ ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v) (setNilAtPreservesEval′ sels2 sels1) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ ○⟪ sels1 ⟫ⁿ ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘○⟪⟫ⁿ (replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ) sels1 v ⟩
-  ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v !! sels1)
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels2 ]≔ⁿ []ⁿ ○⟪ sels1 ⟫ⁿ ⌉⟧ v
+    ≡⟨ ⟦⌈⌉⟧∘○⟪⟫ⁿ (⟪ [] ⟫ⁿ [ sels2 ]≔ⁿ []ⁿ) sels1 v ⟩
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels2 ]≔ⁿ []ⁿ ⌉⟧ (v !! sels1)
     ≡⟨ refl ⟩
   ⟦⌈ setNilAt sels2 ⌉⟧ (v !! sels1)
   ∎
@@ -195,51 +186,41 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
     ≡⟨ sym $ ⟦⌈⌉⟧∘!!ⁿ (setConsAt (sels1 ++ sels2)) sels1 v ⟩
   ⟦⌈ setConsAt (sels1 ++ sels2) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ refl ⟩
-  ⟦⌈ replaceAt (sels1 ++ sels2) ⟪ [] ⟫ⁿ
-               (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                  ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) !!ⁿ sels1 ⌉⟧ v
+  ⟦⌈ ⟪ [] ⟫ⁿ [ (sels1 ++ sels2) ]≔ⁿ
+       (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+         ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
             (cong (flip _!!ⁿ_ sels1)
-                  (replaceAt∘++ sels1 sels2 (⟪ [] ⟫ⁿ)
+                  ([]≔ⁿ∘++ sels1 sels2 (⟪ [] ⟫ⁿ)
                     (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
                       ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))) ⟩
-  ⟦⌈ replaceAt sels1 ⟪ [] ⟫ⁿ
-               (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
-                          (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                            ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ)) !!ⁿ sels1 ⌉⟧ v
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels1 ]≔ⁿ
+     ((⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ
+       (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+         ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ)) !!ⁿ sels1 ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (!!ⁿ∘replaceAt sels1 (⟪ [] ⟫ⁿ)
-              (replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
-                         (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                           ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))) ⟩
-  ⟦⌈ replaceAt sels2 (⟪ [] ⟫ⁿ !!ⁿ sels1)
-            (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-              ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
+            (!!ⁿ∘[]≔ⁿ sels1 ⟪ [] ⟫ⁿ
+              ((⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ
+                  (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+                    ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))) ⟩
+  ⟦⌈ (⟪ [] ⟫ⁿ !!ⁿ sels1) [ sels2 ]≔ⁿ
+        (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+          ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (flip (replaceAt sels2)
-                        (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                          ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))
-                  (!!ⁿ∘⟪⟫ⁿ [] sels1)) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
-                     (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                       ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
+            (cong₂ (flip _[_]≔ⁿ_ sels2) (!!ⁿ∘⟪⟫ⁿ [] sels1) refl) ⟩
+  ⟦⌈ ⟪ sels1 ⟫ⁿ [ sels2 ]≔ⁿ
+       (⟪ (sels1 ++ sels2) ++ [ HD ] ⟫ⁿ ∷ⁿ
+         ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (replaceAt sels2 (⟪ sels1 ⟫ⁿ))
-                  (cong (flip _∷ⁿ_ (⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ))
-                        (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ HD ])))) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
-                     (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
-                       ⟪ (sels1 ++ sels2) ++ [ TL ] ⟫ⁿ) ⌉⟧ v
-    ≡⟨ cong (flip ⟦⌈_⌉⟧ v)
-            (cong (replaceAt sels2 ⟪ sels1 ⟫ⁿ)
-                  (cong (_∷ⁿ_ (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ))
-                        (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ TL ])))) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ sels1 ⟫ⁿ
+            (cong (_[_]≔ⁿ_ ⟪ sels1 ⟫ⁿ sels2)
+                  (cong₂ _∷ⁿ_ (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ HD ]))
+                              (cong ⟪_⟫ⁿ (LM.assoc sels1 sels2 [ TL ])))) ⟩
+  ⟦⌈ ⟪ sels1 ⟫ⁿ [ sels2 ]≔ⁿ
                (⟪ sels1 ++ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ
                   ⟪ sels1 ++ sels2 ++ [ TL ] ⟫ⁿ) ⌉⟧ v
     ≡⟨ cong (flip ⟦⌈_⌉⟧ v) (setConsAtPreservesEval′ sels2 sels1) ⟩
-  ⟦⌈ replaceAt sels2 ⟪ [] ⟫ⁿ
-               (⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ) ○⟪ sels1 ⟫ⁿ ⌉⟧ v
+  ⟦⌈ ⟪ [] ⟫ⁿ [ sels2 ]≔ⁿ
+       (⟪ sels2 ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ sels2 ++ [ TL ] ⟫ⁿ) ○⟪ sels1 ⟫ⁿ ⌉⟧ v
     ≡⟨ refl ⟩
   ⟦⌈ setConsAt sels2 ○⟪ sels1 ⟫ⁿ ⌉⟧ v
     ≡⟨ ⟦⌈⌉⟧∘○⟪⟫ⁿ (setConsAt sels2) sels1 v ⟩
@@ -275,12 +256,12 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   cong (flip _∷ˣ_ v2) helper
   where
   helper = begin
-    ⟦⌈ replaceAt sels ⟪ [ HD ] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
+    ⟦⌈ ⟪ [ HD ] ⟫ⁿ [ sels ]≔ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
-              (replaceAt∘⟪⟫ⁿ sels [ HD ] []ⁿ) ⟩
-    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ [ HD ] ⌉⟧ (v1 ∷ˣ v2)
+              ([]≔ⁿ∘⟪⟫ⁿ sels [ HD ] []ⁿ) ⟩
+    ⟦⌈ ⟪ [] ⟫ⁿ [ [ HD ] ++ sels ]≔ⁿ []ⁿ !!ⁿ [ HD ] ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
-    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
+    ⟦⌈ ⟪ [] ⟫ⁿ [ [ HD ] ++ sels ]≔ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ refl ⟩
     ⟦⌈ setNilAt ([ HD ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ setNilAtPreservesEval′′ (v1 ∷ˣ v2) [ HD ] sels ⟩
@@ -295,12 +276,12 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   cong (_∷ˣ_ v1) helper
   where
   helper = begin
-    ⟦⌈ replaceAt sels ⟪ [ TL ] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
+    ⟦⌈ ⟪ [ TL ] ⟫ⁿ [ sels ]≔ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
-              (replaceAt∘⟪⟫ⁿ sels [ TL ] []ⁿ) ⟩
-    ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ !!ⁿ [ TL ] ⌉⟧ (v1 ∷ˣ v2)
+              ([]≔ⁿ∘⟪⟫ⁿ sels [ TL ] []ⁿ) ⟩
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ TL ] ++ sels) ]≔ⁿ []ⁿ !!ⁿ [ TL ] ⌉⟧ (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
-    ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ TL ] ++ sels) ]≔ⁿ []ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ refl ⟩
     ⟦⌈ setNilAt ([ TL ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ setNilAtPreservesEval′′ (v1 ∷ˣ v2) [ TL ] sels ⟩
@@ -332,22 +313,19 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   cong (flip _∷ˣ_ v2) helper
   where
   helper = begin
-    ⟦⌈ replaceAt sels ⟪ [ HD ] ⟫ⁿ
-                      (⟪ (HD ∷ sels) ++ [ HD ] ⟫ⁿ ∷ⁿ
-                        ⟪ (HD ∷ sels) ++ [ TL ] ⟫ⁿ) ⌉⟧
-      (v1 ∷ˣ v2)
+    ⟦⌈ ⟪ [ HD ] ⟫ⁿ [ sels ]≔ⁿ
+         (⟪ (HD ∷ sels) ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ (HD ∷ sels) ++ [ TL ] ⟫ⁿ) ⌉⟧
+       (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
-              (replaceAt∘⟪⟫ⁿ sels [ HD ]
-                                 (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
-                                   ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
-    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ
-                 (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) !!ⁿ
-                   [ HD ] ⌉⟧
+              ([]≔ⁿ∘⟪⟫ⁿ sels [ HD ]
+                (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ HD ] ++ sels) ]≔ⁿ
+         (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) !!ⁿ [ HD ] ⌉⟧
        (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
-    ⟦⌈ replaceAt ([ HD ] ++ sels) ⟪ [] ⟫ⁿ
-                 (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
-                     (v1 ∷ˣ v2) !! [ HD ]
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ HD ] ++ sels) ]≔ⁿ
+         (⟪ HD ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ HD ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
+       (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ refl ⟩
     ⟦⌈ setConsAt ([ HD ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ setConsAtPreservesEval′′ (v1 ∷ˣ v2) (HD ∷ []) sels ⟩
@@ -362,22 +340,19 @@ setConsAtPreservesEval′′ v sels1 sels2 = begin
   cong (_∷ˣ_ v1) helper
   where
   helper = begin
-    ⟦⌈ replaceAt sels ⟪ [ TL ] ⟫ⁿ
-                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
-           (v1 ∷ˣ v2)
+    ⟦⌈ ⟪ [ TL ] ⟫ⁿ [ sels ]≔ⁿ
+         (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
+       (v1 ∷ˣ v2)
       ≡⟨ cong (flip ⟦⌈_⌉⟧ (v1 ∷ˣ v2))
-              (replaceAt∘⟪⟫ⁿ sels [ TL ]
-                             (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ
-                               ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
-    ⟦⌈ replaceAt ([ TL ] ++ sels) (⟪ [] ⟫ⁿ)
-                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)
-                   !!ⁿ [ TL ] ⌉⟧
-           (v1 ∷ˣ v2)
+              ([]≔ⁿ∘⟪⟫ⁿ sels [ TL ]
+                (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)) ⟩
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ TL ] ++ sels) ]≔ⁿ
+         (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ)!!ⁿ [ TL ] ⌉⟧
+       (v1 ∷ˣ v2)
       ≡⟨ refl ⟩
-    ⟦⌈ replaceAt ([ TL ] ++ sels) ⟪ [] ⟫ⁿ
-                 (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
-                 (v1 ∷ˣ v2)
-                   !! [ TL ]
+    ⟦⌈ ⟪ [] ⟫ⁿ [ ([ TL ] ++ sels) ]≔ⁿ
+         (⟪ TL ∷ sels ++ [ HD ] ⟫ⁿ ∷ⁿ ⟪ TL ∷ sels ++ [ TL ] ⟫ⁿ) ⌉⟧
+       (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ refl ⟩
     ⟦⌈ setConsAt ([ TL ] ++ sels) ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ setConsAtPreservesEval′′ (v1 ∷ˣ v2) [ TL ] sels ⟩

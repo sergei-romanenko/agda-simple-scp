@@ -19,14 +19,14 @@ norm₁ = refl
 
 
 replaceAt₁ :
-  ⌈  replaceAt (HD ∷ []) (⌋ Id ⌊) (⌋ [] ∷ [] ⌊) ⌉
+  ⌈  ⌋ Id ⌊ [ HD ∷ [] ]≔ⁿ ⌋ [] ∷ [] ⌊ ⌉
   ≡ ([] ∷ []) ∷ Tl
 replaceAt₁ = refl
 
 module replaceAt₂ where
   nt1 = ⌋ IfNil Hd (Hd $$ Tl) (Tl $$ Tl) ⌊
   nt2 = ⌋ Tl $$ Hd $$ Tl ∷ Hd $$ Hd $$ Tl ⌊
-  prop : ⌈ nt1 ○ (replaceAt (TL ∷ HD ∷ []) (⌋ Id ⌊) nt2) ⌉
+  prop : ⌈ nt1 ○ (⌋ Id ⌊ [ TL ∷ HD ∷ [] ]≔ⁿ nt2) ⌉
          ≡ IfNil Hd (Tl $$ Hd $$ Tl ∷ Hd $$ Hd $$ Tl) (Tl $$ Tl)
   prop = refl
 

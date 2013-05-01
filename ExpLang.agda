@@ -18,9 +18,13 @@ open ≡-Reasoning
 
 open import Util
  
---
--- Simple expression language
---
+----------
+-- Values
+----------
+
+-- Values are like Lisp S-expressions.
+-- []ˣ is a (single) atom.
+-- ↯ˣ denotes an "error" value.
 
 infixr 5 _∷ˣ_
 
@@ -29,26 +33,17 @@ data Val : Set where
   _∷ˣ_ : (v1 v2 : Val) → Val
   ↯ˣ   : Val 
 
+-------------
+-- Selectors
+-------------
+
 data Selector : Set where
   HD : Selector
   TL : Selector
 
-infixr 5 _∷_
-infixr 6 _$$_
-
-data Trm : Set where
-  []    : Trm
-  _∷_   : (t1 t2 : Trm) → Trm 
-  Hd    : Trm
-  Tl    : Trm
-  Id    : Trm
-  _$$_  : (t1 t2 : Trm) → Trm
-  IfNil : (t0 t1 t2 : Trm) → Trm
-  ↯     : Trm
+infixl 4 _!_ _!!_
 
 -- _!_
-
-infixl 4 _!_ _!!_
 
 _!_ : (v : Val) → (sel : Selector) → Val
 
@@ -71,6 +66,48 @@ v !! (x ∷ xs) = (v ! x) !! xs
 !!-is-foldl v [] = refl
 !!-is-foldl v (x ∷ xs) = !!-is-foldl (v ! x) xs
 
+-- !!-↯ˣ
+
+!!-↯ˣ : ∀ (sels : List Selector) →
+  ↯ˣ !! sels ≡ ↯ˣ
+
+!!-↯ˣ [] = refl
+!!-↯ˣ (sel ∷ sels) = !!-↯ˣ sels
+
+-- !!∘++
+
+!!∘++ : ∀ (v : Val) (sels1 sels2 : List Selector) →
+  v !! (sels1 ++ sels2) ≡ v !! sels1 !! sels2
+
+!!∘++ v [] sels2 = refl
+!!∘++ v (sel ∷ xs) sels2 =
+  !!∘++ (v ! sel) xs sels2
+
+-- Updating a subtree in a value
+
+-- _[_]≔_
+
+infixl 6 _[_]≔_
+
+_[_]≔_ : Val → (sels : List Selector) → Val → Val
+
+v [ [] ]≔ v′ = v′
+v [ HD ∷ sels ]≔ v′ = (v ! HD) [ sels ]≔ v′ ∷ˣ (v ! TL)
+v [ TL ∷ sels ]≔ v′ = (v ! HD) ∷ˣ (v ! TL) [ sels ]≔ v′
+
+-- _[_]≔_ is correct with respect to _!!_
+
+[]≔∘!! : ∀ sels v v′ →
+  (v [ sels ]≔ v′) !! sels ≡ v′
+
+[]≔∘!! [] v v′ = refl
+[]≔∘!! (HD ∷ sels) v v′ = []≔∘!! sels (v ! HD) v′
+[]≔∘!! (TL ∷ sels) v v′ = []≔∘!! sels (v ! TL) v′
+
+---------------------------
+-- Conditional expressions
+---------------------------
+
 -- ifNil
 
 ifNil : (v0 v1 v2 : Val) → Val
@@ -79,21 +116,71 @@ ifNil []ˣ v1 v2 = v1
 ifNil (_ ∷ˣ _) v1 v2 = v2
 ifNil ↯ˣ v1 v2 = ↯ˣ
 
-ifNil-cong : ∀ {v0 v0′ v1 v1′ v2 v2′ : Val} → v0 ≡ v0′ → v1 ≡ v1′ → v2 ≡ v2′ →
+-- ifNil-cong
+
+ifNil-cong : ∀ {v0 v0′ v1 v1′ v2 v2′ : Val} →
+  v0 ≡ v0′ → v1 ≡ v1′ → v2 ≡ v2′ →
   ifNil v0 v1 v2 ≡ ifNil v0′ v1′ v2′
+
 ifNil-cong refl refl refl = refl
+
+-- ifNil-distr
 
 ifNil-distr : ∀ (f : Val → Val) → f ↯ˣ ≡ ↯ˣ → ∀ v0 {v1 v2} →
   f (ifNil v0 v1 v2) ≡ ifNil v0 (f v1) (f v2)
+
 ifNil-distr f fb []ˣ = refl
 ifNil-distr f fb (v1 ∷ˣ v2) = refl
 ifNil-distr f fb ↯ˣ = fb
 
+-- ifNil∘ifNil
+
 ifNil∘ifNil : ∀ u0 {u1 u2 v1 v2} →
   ifNil (ifNil u0 u1 u2) v1 v2 ≡ ifNil u0 (ifNil u1 v1 v2) (ifNil u2 v1 v2)
+
 ifNil∘ifNil []ˣ = refl
 ifNil∘ifNil (_ ∷ˣ _) = refl
 ifNil∘ifNil ↯ˣ = refl
+
+-- !!∘ifNil
+
+!!∘ifNil : ∀ v0 {v1 v2} (sels : List Selector) →
+  (ifNil v0 v1 v2) !! sels ≡
+    ifNil v0 (v1 !! sels) (v2 !! sels)
+
+!!∘ifNil v0 {v1} {v2} sels =
+  ifNil-distr (flip _!!_ sels) (!!-↯ˣ sels) v0
+
+-- !∘ifNil
+
+!∘ifNil : ∀ v0 {v1 v2} (sel : Selector) →
+  (ifNil v0 v1 v2) ! sel ≡
+    ifNil v0 (v1 ! sel) (v2 ! sel)
+
+!∘ifNil v0 {v1} {v2} sel = !!∘ifNil v0 (sel ∷ [])
+
+----------------------
+-- Simple expressions
+----------------------
+
+-- The language of expressions is "variable free".
+-- All expressions denote functions of type Val → Val.
+
+infixr 5 _∷_
+infixr 6 _$$_
+
+data Trm : Set where
+  []    : Trm
+  _∷_   : (t1 t2 : Trm) → Trm 
+  Hd    : Trm
+  Tl    : Trm
+  Id    : Trm
+  _$$_  : (t1 t2 : Trm) → Trm
+  IfNil : (t0 t1 t2 : Trm) → Trm
+  ↯     : Trm
+
+-- As the language of expressions is not Turing-complete,
+-- its semantics is given as a total function.
 
 -- ⟦_⟧
 
@@ -109,6 +196,10 @@ ifNil∘ifNil ↯ˣ = refl
   ifNil (⟦ t0 ⟧ v) (⟦ t1 ⟧ v) (⟦ t2 ⟧ v) 
 ⟦ ↯ ⟧ v = ↯ˣ
 
+
+-- "Applying" selectors to expressions
+-- (symbolic evaluation with some simplifications).
+
 -- _⁉_
 
 _⁉_ : (t : Trm) → (sel : Selector) → Trm
@@ -118,12 +209,9 @@ Id ⁉ TL = Tl
 t  ⁉ HD = Hd $$ t
 t  ⁉ TL = Tl $$ t
 
--- ⟪_⟫
+-- _⁉_ is correct with respect to _!_
 
-⟪_⟫ : (sels : List Selector) → Trm
-⟪_⟫ sels = foldl _⁉_ Id sels
-
--- ⟦⟧∘⟪⟫
+-- ⟦⟧∘⁉
 
 ⟦⟧∘⁉ : ∀ t sel v → ⟦ t ⁉ sel ⟧ v ≡ ⟦ t ⟧ v ! sel
 
@@ -144,26 +232,33 @@ t  ⁉ TL = Tl $$ t
 ⟦⟧∘⁉ ↯ HD v = refl
 ⟦⟧∘⁉ ↯ TL v = refl
 
--- ⟦⟧∘foldr
+-- ⟦⟧∘foldr⁉
 
-⟦⟧∘foldr : ∀ rsels v →
+⟦⟧∘foldr⁉ : ∀ rsels v →
   ⟦ foldr (flip _⁉_) Id rsels ⟧ v ≡
   foldr (flip _!_) v rsels
 
-⟦⟧∘foldr [] v = refl
+⟦⟧∘foldr⁉ [] v = refl
 
-⟦⟧∘foldr (sel ∷ rsels) v =
+⟦⟧∘foldr⁉ (sel ∷ rsels) v =
   begin
     ⟦ foldr (flip _⁉_) Id (sel ∷ rsels) ⟧ v
       ≡⟨ refl ⟩
     ⟦ foldr (flip _⁉_) Id rsels ⁉ sel ⟧ v
       ≡⟨ ⟦⟧∘⁉ (foldr (flip _⁉_) Id rsels) sel v ⟩
     ⟦ foldr (flip _⁉_) Id rsels ⟧ v ! sel
-      ≡⟨ cong (flip _!_ sel) (⟦⟧∘foldr rsels v) ⟩
+      ≡⟨ cong (flip _!_ sel) (⟦⟧∘foldr⁉ rsels v) ⟩
     (foldr (flip _!_) v rsels) ! sel
       ≡⟨ refl ⟩
     foldr (flip _!_) v (sel ∷ rsels)
   ∎
+
+-- Sequences of selectors applied symbolically
+
+-- ⟪_⟫
+
+⟪_⟫ : (sels : List Selector) → Trm
+⟪_⟫ sels = foldl _⁉_ Id sels
 
 -- ⟦⟧∘⟪⟫
 
@@ -177,7 +272,7 @@ t  ⁉ TL = Tl $$ t
     ⟦ foldl _⁉_ Id sels ⟧ v
       ≡⟨ cong (flip ⟦_⟧ v) (sym $ foldr∘reverse (flip _⁉_) Id sels) ⟩
     ⟦ foldr (flip _⁉_) Id (reverse sels) ⟧ v
-      ≡⟨ ⟦⟧∘foldr (foldl (flip _∷_) [] sels) v ⟩
+      ≡⟨ ⟦⟧∘foldr⁉ (foldl (flip _∷_) [] sels) v ⟩
     foldr (flip _!_) v (reverse sels)
       ≡⟨ foldr∘reverse (flip _!_) v sels ⟩
     foldl _!_ v sels
@@ -185,43 +280,16 @@ t  ⁉ TL = Tl $$ t
     v !! sels
   ∎
 
--- !!-↯ˣ
-
-!!-↯ˣ : ∀ (sels : List Selector) →
-  ↯ˣ !! sels ≡ ↯ˣ
-
-!!-↯ˣ [] = refl
-!!-↯ˣ (sel ∷ sels) = !!-↯ˣ sels
-
--- !!∘ifNil
-
-!!∘ifNil : ∀ v0 {v1 v2} (sels : List Selector) →
-  (ifNil v0 v1 v2) !! sels ≡
-    ifNil v0 (v1 !! sels) (v2 !! sels)
-
-!!∘ifNil v0 {v1} {v2} sels =
-  ifNil-distr (flip _!!_ sels) (!!-↯ˣ sels) v0
-
--- !∘ifNil
-
-!∘ifNil : ∀ v0 {v1 v2} (sel : Selector) →
-  (ifNil v0 v1 v2) ! sel ≡
-    ifNil v0 (v1 ! sel) (v2 ! sel)
-
-!∘ifNil v0 {v1} {v2} sel = !!∘ifNil v0 (sel ∷ [])
-
--- !!∘++
-
-!!∘++ : ∀ (v : Val) (sels1 sels2 : List Selector) →
-  v !! (sels1 ++ sels2) ≡ v !! sels1 !! sels2
-
-!!∘++ v [] sels2 = refl
-!!∘++ v (sel ∷ xs) sels2 =
-  !!∘++ (v ! sel) xs sels2
-
---
+---------------------------------------
 -- Normalization of simple expressions
---
+---------------------------------------
+
+-- Expressions in "normal form" are represented by a special data type.
+-- In normal forms
+--   * Function composition can only be applied to a pair of selectors.
+--   * Tests in conditional expressions are selector compositions
+--     (in reverse order, so that they can be directly interpreted as
+--     positions in the binary trees of values).
 
 -- NTrm
 
@@ -234,6 +302,8 @@ data NTrm : Set where
   IfNilⁿ : (sels : List Selector) → (nt1 nt2 : NTrm) → NTrm
   ↯ⁿ     : NTrm
 
+-- NTrm is a "subset" of Trm, as there is an injection NTrm → Trm.
+
 -- ⌈_⌉ 
 
 ⌈_⌉ : (nt : NTrm) → Trm
@@ -245,14 +315,22 @@ data NTrm : Set where
   IfNil ⟪ sels ⟫ ⌈ nt1 ⌉ ⌈ nt2 ⌉
 ⌈ ↯ⁿ ⌉ = ↯
 
+-- The composition of ⟦_⟧ and ⌈_⌉ is defined "just for beauty"
+-- (to spare 2 spaces in formulas).
+
 -- ⟦⌈_⌉⟧
 
 ⟦⌈_⌉⟧ : (nt : NTrm) (v : Val) → Val
 ⟦⌈ nt ⌉⟧ v = ⟦ ⌈ nt ⌉ ⟧ v
 
--- _!ⁿ_
+
+--
+-- Symbolic application of a selector to a normal-form term.
+--
 
 infixl 4 _!ⁿ_ _!!ⁿ_
+
+-- _!ⁿ_
 
 _!ⁿ_ : (nt : NTrm) (sel : Selector) → NTrm
 
@@ -263,6 +341,8 @@ nt1 ∷ⁿ nt2 !ⁿ TL = nt2
 IfNilⁿ sels nt1 nt2 !ⁿ sel =
   IfNilⁿ sels (nt1 !ⁿ sel) (nt2 !ⁿ sel)
 ↯ⁿ !ⁿ sel = ↯ⁿ
+
+-- Corrctness of !ⁿ
 
 -- ⟦⌈⌉⟧∘!ⁿ
 
@@ -316,6 +396,11 @@ IfNilⁿ sels nt1 nt2 !ⁿ sel =
   ∎
 
 ⟦⌈⌉⟧∘!ⁿ ↯ⁿ sel v = refl
+
+
+--
+-- Symbolic application of a selector list to a normal term.
+--
 
 -- _!!ⁿ_
 
@@ -372,6 +457,10 @@ nt !!ⁿ sels =
   ⟪ sels1 ++ sel ∷ sels ⟫ⁿ
   ∎
 
+--
+-- Symbolic composition of a normal term with a selector list.
+--
+
 -- _○⟪_⟫ⁿ
 
 infixl 4 _○⟪_⟫ⁿ _○_
@@ -426,36 +515,40 @@ IfNilⁿ sels2 nt1 nt2 ○⟪ sels ⟫ⁿ =
 
 ⟦⌈⌉⟧∘○⟪⟫ⁿ ↯ⁿ sels v = refl
 
--- ∘⟪⟫ⁿ∘++
+-- ○⟪⟫ⁿ∘++
 
-∘⟪⟫ⁿ∘++ : (nt : NTrm) (sels1 sels2 : List Selector) →
+○⟪⟫ⁿ∘++ : (nt : NTrm) (sels1 sels2 : List Selector) →
   nt ○⟪ sels1 ++ sels2 ⟫ⁿ ≡
   nt ○⟪ sels2 ⟫ⁿ ○⟪ sels1 ⟫ⁿ
 
-∘⟪⟫ⁿ∘++ []ⁿ sels1 sels2 = refl
+○⟪⟫ⁿ∘++ []ⁿ sels1 sels2 = refl
 
-∘⟪⟫ⁿ∘++ (nt1 ∷ⁿ nt2) sels1 sels2 =
+○⟪⟫ⁿ∘++ (nt1 ∷ⁿ nt2) sels1 sels2 =
   begin
     (nt1 ○⟪ sels1 ++ sels2 ⟫ⁿ) ∷ⁿ (nt2 ○⟪ sels1 ++ sels2 ⟫ⁿ)
     ≡⟨ cong (_∷ⁿ_ (nt1 ○⟪ sels1 ++ sels2 ⟫ⁿ))
-            (∘⟪⟫ⁿ∘++ nt2 sels1 sels2) ⟩
+            (○⟪⟫ⁿ∘++ nt2 sels1 sels2) ⟩
     (nt1 ○⟪ sels1 ++ sels2 ⟫ⁿ) ∷ⁿ (nt2 ○⟪ sels2 ⟫ⁿ ○⟪ sels1 ⟫ⁿ)
     ≡⟨ cong (flip _∷ⁿ_ (nt2 ○⟪ sels2 ⟫ⁿ ○⟪ sels1 ⟫ⁿ))
-            (∘⟪⟫ⁿ∘++ nt1 sels1 sels2) ⟩
+            (○⟪⟫ⁿ∘++ nt1 sels1 sels2) ⟩
     (nt1 ○⟪ sels2 ⟫ⁿ ○⟪ sels1 ⟫ⁿ) ∷ⁿ (nt2 ○⟪ sels2 ⟫ⁿ ○⟪ sels1 ⟫ⁿ)
   ∎
 
-∘⟪⟫ⁿ∘++ ⟪ sels ⟫ⁿ sels1 sels2
+○⟪⟫ⁿ∘++ ⟪ sels ⟫ⁿ sels1 sels2
   rewrite LM.assoc sels1 sels2 sels
   =  refl
 
-∘⟪⟫ⁿ∘++ (IfNilⁿ sels nt1 nt2) sels1 sels2
+○⟪⟫ⁿ∘++ (IfNilⁿ sels nt1 nt2) sels1 sels2
   rewrite LM.assoc sels1 sels2 sels
-        | ∘⟪⟫ⁿ∘++ nt1 sels1 sels2
-        | ∘⟪⟫ⁿ∘++ nt2 sels1 sels2
+        | ○⟪⟫ⁿ∘++ nt1 sels1 sels2
+        | ○⟪⟫ⁿ∘++ nt2 sels1 sels2
   = refl
 
-∘⟪⟫ⁿ∘++  ↯ⁿ sels1 sels2 = refl
+○⟪⟫ⁿ∘++  ↯ⁿ sels1 sels2 = refl
+
+--
+-- Simplification of IfNilⁿ
+--
 
 -- IfNilⁿ⟱
 
@@ -471,6 +564,8 @@ IfNilⁿ⟱ (IfNilⁿ sels nt' nt'') nt1 nt2 =
   IfNilⁿ sels (IfNilⁿ⟱ nt' nt1 nt2) (IfNilⁿ⟱ nt'' nt1 nt2)
 IfNilⁿ⟱ ↯ⁿ nt1 nt2 =
   ↯ⁿ
+
+-- IfNilⁿ⟱ is correct with respect to ifNil
 
 -- ⟦⌈⌉⟧∘IfNilⁿ⟱
 
@@ -491,6 +586,10 @@ IfNilⁿ⟱ ↯ⁿ nt1 nt2 =
 ... | v1 ∷ˣ v2 rewrite ⟦⌈⌉⟧∘IfNilⁿ⟱ nt'' nt2 nt3 v = refl
 ... | ↯ˣ = refl
 ⟦⌈⌉⟧∘IfNilⁿ⟱ ↯ⁿ nt2 nt3 v = refl
+
+--
+-- Symbolic composition of two normal terms.
+--
 
 -- _○_
 
@@ -528,12 +627,13 @@ IfNilⁿ sels nt' nt'' ○ nt2 =
 
 ○∘IfNilⁿ sels1 sels2 nt1-1 nt1-2 nt2-1 nt2-2 = refl
 
---
+
+--  _○_ is correct with respect to _∘_
+
 -- ⟦⌈⌉⟧∘○
---
 
 ⟦⌈⌉⟧∘○ : (nt1 nt2 : NTrm) (v : Val) →
-  ⟦⌈ nt1 ○ nt2 ⌉⟧ v ≡ ⟦⌈ nt1 ⌉⟧ (⟦⌈ nt2 ⌉⟧ v)
+  ⟦⌈ nt1 ○ nt2 ⌉⟧ v ≡ (⟦⌈ nt1 ⌉⟧ ∘ ⟦⌈ nt2 ⌉⟧) v
 
 ⟦⌈⌉⟧∘○ []ⁿ nt2 v =
   refl
@@ -753,6 +853,13 @@ IfNilⁿ sels nt' nt'' ○ nt2 =
 ⟦⌈⌉⟧∘○ ↯ⁿ nt2 v =
   refl
 
+---------------------------
+-- Normalization of terms!
+---------------------------
+
+-- ⌋_⌊ not only brings expressions into normal form,
+-- but also achieves some optimizations like deforestation.
+
 -- ⌋_⌊
 
 ⌋_⌊ : (t : Trm) → NTrm
@@ -766,9 +873,9 @@ IfNilⁿ sels nt' nt'' ○ nt2 =
 ⌋ IfNil t0 t1 t2 ⌊ = IfNilⁿ⟱ ⌋ t0 ⌊ ⌋ t1 ⌊ ⌋ t2 ⌊
 ⌋ ↯ ⌊ = ↯ⁿ
 
---
+------------------------------------------------------------------
 -- The main theorem establishing the correctness of normalization.
---
+------------------------------------------------------------------
 
 -- ⟦⌈⌉⟧∘⌋⌊
 
@@ -815,64 +922,102 @@ IfNilⁿ sels nt' nt'' ○ nt2 =
 ⟦⌈⌉⟧∘⌋⌊ ↯ v =
   refl
 
---
+---------------------------
 -- Emulating substitutions
---
+---------------------------
 
--- replaceAt
+-- Substitutions can be emulated inside our language, giving
+-- a simple form of "explicit substitutions".
 
-replaceAt : (sels : List Selector) (t t′ : NTrm) → NTrm
+-- We define t [ sels ]≔ⁿ t′ , which, for a given position `sels` in t
+-- generates a new normal-form term, such that
+--     ⟦⌈ t [ sels ]≔ⁿ t′ ⌉⟧ v ≡ (⟦⌈ t ⌉⟧ v) [ sels ]≔ (⟦⌈ t′ ⌉⟧ v)
 
-replaceAt [] t t′ = t′
-replaceAt (HD ∷ sels) t t′ =
-  replaceAt sels (t !ⁿ HD) t′ ∷ⁿ (t !ⁿ TL)
-replaceAt (TL ∷ sels) t t′ =
-  (t !ⁿ HD) ∷ⁿ replaceAt sels (t !ⁿ TL) t′
+-- _[_]≔ⁿ_
 
--- !!ⁿ∘replaceAt
+infixl 6 _[_]≔ⁿ_
 
-!!ⁿ∘replaceAt : (sels : List Selector) (t t′ : NTrm) →
-  replaceAt sels t t′ !!ⁿ sels ≡ t′
+_[_]≔ⁿ_ : (t : NTrm) (sels : List Selector) (t′ : NTrm) → NTrm
 
-!!ⁿ∘replaceAt [] t t′ = refl
-!!ⁿ∘replaceAt (HD ∷ sels) t t′ = begin
-  replaceAt (HD ∷ sels) t t′ !!ⁿ HD ∷ sels
+t [ [] ]≔ⁿ t′ = t′
+t [ HD ∷ sels ]≔ⁿ t′ =
+  (t !ⁿ HD) [ sels ]≔ⁿ t′ ∷ⁿ (t !ⁿ TL)
+t [ TL ∷ sels ]≔ⁿ t′ =
+  (t !ⁿ HD) ∷ⁿ (t !ⁿ TL) [ sels ]≔ⁿ t′
+
+-- _[_]≔ⁿ_ is correct with respect to _[_]≔_
+
+-- ⟦⟧∘[]≔ⁿ
+
+⟦⟧∘[]≔ⁿ : ∀ (sels : List Selector) t t′ (v v′ : Val) →
+  ⟦⌈ t [ sels ]≔ⁿ t′ ⌉⟧ v ≡ (⟦⌈ t ⌉⟧ v) [ sels ]≔ (⟦⌈ t′ ⌉⟧ v) 
+
+⟦⟧∘[]≔ⁿ [] t t′ v v′ = refl
+
+⟦⟧∘[]≔ⁿ (HD ∷ sels) t t′ v v′ =
+  begin
+    ⟦⌈ (t !ⁿ HD) [ sels ]≔ⁿ t′ ⌉⟧ v ∷ˣ ⟦⌈ t !ⁿ TL ⌉⟧ v
+      ≡⟨ cong (flip _∷ˣ_ (⟦ ⌈ t !ⁿ TL ⌉ ⟧ v))
+                         (⟦⟧∘[]≔ⁿ sels (t !ⁿ HD) t′ v v′) ⟩
+    ⟦⌈ t !ⁿ HD ⌉⟧ v [ sels ]≔ ⟦ ⌈ t′ ⌉ ⟧ v ∷ˣ ⟦⌈ t !ⁿ TL ⌉⟧ v
+      ≡⟨ cong₂ _∷ˣ_ (cong₂ (flip _[_]≔_ sels) (⟦⌈⌉⟧∘!ⁿ t HD v) refl)
+                    (⟦⌈⌉⟧∘!ⁿ t TL v) ⟩
+    (⟦⌈ t ⌉⟧ v ! HD) [ sels ]≔ ⟦⌈ t′ ⌉⟧ v ∷ˣ (⟦⌈ t ⌉⟧ v ! TL)
+  ∎
+
+⟦⟧∘[]≔ⁿ (TL ∷ sels) t t′ v v′ =
+  begin
+    ⟦⌈ t !ⁿ HD ⌉⟧ v ∷ˣ ⟦⌈ (t !ⁿ TL) [ sels ]≔ⁿ t′ ⌉⟧ v
+      ≡⟨ cong (_∷ˣ_ (⟦ ⌈ t !ⁿ HD ⌉ ⟧ v))
+                    (⟦⟧∘[]≔ⁿ sels (t !ⁿ TL) t′ v v′) ⟩
+    ⟦⌈ t !ⁿ HD ⌉⟧ v ∷ˣ ⟦⌈ t !ⁿ TL ⌉⟧ v [ sels ]≔ ⟦⌈ t′ ⌉⟧ v
+      ≡⟨ cong₂ _∷ˣ_ (⟦⌈⌉⟧∘!ⁿ t HD v)
+                    (cong₂ (flip _[_]≔_ sels) (⟦⌈⌉⟧∘!ⁿ t TL v) refl) ⟩
+    (⟦⌈ t ⌉⟧ v ! HD) ∷ˣ (⟦⌈ t ⌉⟧ v ! TL) [ sels ]≔ ⟦⌈ t′ ⌉⟧ v
+  ∎
+
+-- !!ⁿ∘[]≔ⁿ
+
+!!ⁿ∘[]≔ⁿ : (sels : List Selector) (t t′ : NTrm) →
+  t [ sels ]≔ⁿ t′ !!ⁿ sels ≡ t′
+
+!!ⁿ∘[]≔ⁿ [] t t′ = refl
+!!ⁿ∘[]≔ⁿ (HD ∷ sels) t t′ = begin
+  t [ HD ∷ sels ]≔ⁿ t′ !!ⁿ HD ∷ sels
     ≡⟨ refl ⟩
-  replaceAt sels (t !ⁿ HD) t′ !!ⁿ sels
-    ≡⟨ !!ⁿ∘replaceAt sels (t !ⁿ HD) t′ ⟩
+  (t !ⁿ HD) [ sels ]≔ⁿ t′ !!ⁿ sels
+    ≡⟨ !!ⁿ∘[]≔ⁿ sels (t !ⁿ HD) t′ ⟩
   t′
   ∎
-!!ⁿ∘replaceAt (TL ∷ sels) t t′ = begin
-  replaceAt (TL ∷ sels) t t′ !!ⁿ (TL ∷ sels)
+!!ⁿ∘[]≔ⁿ (TL ∷ sels) t t′ = begin
+  t [ TL ∷ sels ]≔ⁿ t′ !!ⁿ (TL ∷ sels)
     ≡⟨ refl ⟩
-  replaceAt sels (t !ⁿ TL) t′ !!ⁿ sels
-    ≡⟨ !!ⁿ∘replaceAt sels (t !ⁿ TL) t′ ⟩
+  (t !ⁿ TL) [ sels ]≔ⁿ t′ !!ⁿ sels
+    ≡⟨ !!ⁿ∘[]≔ⁿ sels (t !ⁿ TL) t′ ⟩
   t′
   ∎
 
--- replaceAt∘++
+-- []≔ⁿ∘++
 
-replaceAt∘++ : ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
-  replaceAt (sels1 ++ sels2) nt nt′
+[]≔ⁿ∘++ : ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
+  nt [ sels1 ++ sels2 ]≔ⁿ nt′
   ≡
-  replaceAt sels1 nt (replaceAt sels2 (nt !!ⁿ sels1) nt′)
+  nt [ sels1 ]≔ⁿ ((nt !!ⁿ sels1) [ sels2 ]≔ⁿ nt′)
 
-replaceAt∘++ [] sels2 nt nt′ = refl
-replaceAt∘++ (HD ∷ sels1) sels2 nt nt′ = begin
-  replaceAt ((HD ∷ sels1) ++ sels2) nt nt′
+[]≔ⁿ∘++ [] sels2 nt nt′ = refl
+[]≔ⁿ∘++ (HD ∷ sels1) sels2 nt nt′ = begin
+  nt [ (HD ∷ sels1) ++ sels2 ]≔ⁿ nt′
     ≡⟨ refl ⟩
-  replaceAt (sels1 ++ sels2) (nt !ⁿ HD) nt′ ∷ⁿ (nt !ⁿ TL)
+  (nt !ⁿ HD) [ sels1 ++ sels2 ]≔ⁿ nt′ ∷ⁿ (nt !ⁿ TL)
     ≡⟨ cong (flip _∷ⁿ_ (nt !ⁿ TL))
-            (replaceAt∘++ sels1 sels2 (nt !ⁿ HD) nt′) ⟩
-  replaceAt sels1 (nt !ⁿ HD)
-            (replaceAt sels2 (nt !ⁿ HD !!ⁿ sels1) nt′) ∷ⁿ (nt !ⁿ TL)
+            ([]≔ⁿ∘++ sels1 sels2 (nt !ⁿ HD) nt′) ⟩
+  (nt !ⁿ HD) [ sels1 ]≔ⁿ ((nt !ⁿ HD !!ⁿ sels1) [ sels2 ]≔ⁿ nt′) ∷ⁿ (nt !ⁿ TL)
     ≡⟨ refl ⟩
-  replaceAt (HD ∷ sels1) nt
-            (replaceAt sels2 (nt !!ⁿ HD ∷ sels1) nt′)
+  nt [ HD ∷ sels1 ]≔ⁿ ((nt !!ⁿ HD ∷ sels1) [ sels2 ]≔ⁿ nt′)
   ∎
-replaceAt∘++ (TL ∷ sels1) sels2 nt nt′ =
+[]≔ⁿ∘++ (TL ∷ sels1) sels2 nt nt′ =
   cong (_∷ⁿ_ (nt !ⁿ HD))
-       (replaceAt∘++ sels1 sels2 (nt !ⁿ TL) nt′)
+       ([]≔ⁿ∘++ sels1 sels2 (nt !ⁿ TL) nt′)
 
 -- _≟Sel_
 
@@ -926,54 +1071,55 @@ commonPrefix-[] :
 commonPrefix-[] eq [] = refl
 commonPrefix-[] eq (x ∷ xs) = refl
 
--- !!ⁿ∘ReplaceAt
+-- []≔ⁿ∘++∘!!ⁿ
 
-!!ⁿ∘ReplaceAt′ :
+[]≔ⁿ∘++∘!!ⁿ′ :
   ∀ (ws us vs : List Selector) (nt nt′ : NTrm) →
-    replaceAt (ws ++ vs) nt nt′ !!ⁿ ws ++ us
-      ≡ replaceAt vs (nt !!ⁿ ws) nt′ !!ⁿ us
+    nt [ ws ++ vs ]≔ⁿ nt′ !!ⁿ ws ++ us
+      ≡ (nt !!ⁿ ws) [ vs ]≔ⁿ nt′ !!ⁿ us
 
-!!ⁿ∘ReplaceAt′ [] us vs nt nt′ = refl
-!!ⁿ∘ReplaceAt′ (HD ∷ ws) us vs nt nt′ =
-  !!ⁿ∘ReplaceAt′ ws us vs (nt !ⁿ HD) nt′
-!!ⁿ∘ReplaceAt′ (TL ∷ ws) us vs nt nt′ =
-  !!ⁿ∘ReplaceAt′ ws us vs (nt !ⁿ TL) nt′
+[]≔ⁿ∘++∘!!ⁿ′ [] us vs nt nt′ = refl
+[]≔ⁿ∘++∘!!ⁿ′ (HD ∷ ws) us vs nt nt′ =
+  []≔ⁿ∘++∘!!ⁿ′ ws us vs (nt !ⁿ HD) nt′
+[]≔ⁿ∘++∘!!ⁿ′ (TL ∷ ws) us vs nt nt′ =
+  []≔ⁿ∘++∘!!ⁿ′ ws us vs (nt !ⁿ TL) nt′
 
-!!ⁿ∘ReplaceAt :
+[]≔ⁿ∘++∘!!ⁿ :
   ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
     let cp = commonPrefix? _≟Sel_ sels1 sels2
         ws = proj₁ cp
         us = proj₁ (proj₂ cp)
         vs = proj₁ (proj₂ (proj₂ cp))
-    in replaceAt sels2 nt nt′ !!ⁿ sels1
-       ≡ replaceAt vs (nt !!ⁿ ws) nt′ !!ⁿ us
+    in nt [ sels2 ]≔ⁿ nt′ !!ⁿ sels1
+       ≡ (nt !!ⁿ ws) [ vs ]≔ⁿ nt′ !!ⁿ us
 
-!!ⁿ∘ReplaceAt sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 sels2
+[]≔ⁿ∘++∘!!ⁿ sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 sels2
 ... | ws , us , vs , sels1≡ws++us , sels2≡ws++vs
   rewrite sels1≡ws++us | sels2≡ws++vs =
-  !!ⁿ∘ReplaceAt′ ws us vs nt nt′
+  []≔ⁿ∘++∘!!ⁿ′ ws us vs nt nt′
 
--- replaceAt∘⟪⟫ⁿ
 
-replaceAt∘⟪⟫ⁿ : (sels1 sels2 : List Selector) (nt : NTrm) →
-  replaceAt sels1 ⟪ sels2 ⟫ⁿ nt 
-    ≡ replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt !!ⁿ sels2
+-- []≔ⁿ∘⟪⟫ⁿ
 
-replaceAt∘⟪⟫ⁿ sels1 sels2 nt =
+[]≔ⁿ∘⟪⟫ⁿ : (sels1 sels2 : List Selector) (nt : NTrm) →
+  ⟪ sels2 ⟫ⁿ [ sels1 ]≔ⁿ nt 
+    ≡ ⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt !!ⁿ sels2
+
+[]≔ⁿ∘⟪⟫ⁿ sels1 sels2 nt =
   begin
-    replaceAt sels1 ⟪ sels2 ⟫ⁿ nt
+    ⟪ sels2 ⟫ⁿ [ sels1 ]≔ⁿ nt
       ≡⟨ refl ⟩
-    replaceAt sels1 ⟪ sels2 ⟫ⁿ nt !!ⁿ []
-      ≡⟨ cong (λ z → replaceAt sels1 z nt !!ⁿ [])
+    ⟪ sels2 ⟫ⁿ [ sels1 ]≔ⁿ nt !!ⁿ []
+      ≡⟨ cong (λ z → z [ sels1 ]≔ⁿ  nt !!ⁿ [])
               (sym $ !!ⁿ∘⟪⟫ⁿ [] sels2) ⟩
-    replaceAt sels1 (⟪ [] ⟫ⁿ !!ⁿ sels2) nt !!ⁿ []
-      ≡⟨ sym $ !!ⁿ∘ReplaceAt [] sels1 (⟪ [] ⟫ⁿ !!ⁿ sels2) nt ⟩
-    replaceAt sels1 (⟪ [] ⟫ⁿ  !!ⁿ sels2) nt
-      ≡⟨ sym $ !!ⁿ∘ReplaceAt′ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
-    replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt !!ⁿ (sels2 ++ [])
-      ≡⟨ cong (_!!ⁿ_ (replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt))
+    (⟪ [] ⟫ⁿ !!ⁿ sels2) [ sels1 ]≔ⁿ nt !!ⁿ []
+      ≡⟨ sym $ []≔ⁿ∘++∘!!ⁿ [] sels1 (⟪ [] ⟫ⁿ !!ⁿ sels2) nt ⟩
+    (⟪ [] ⟫ⁿ !!ⁿ sels2) [ sels1 ]≔ⁿ nt
+      ≡⟨ sym $ []≔ⁿ∘++∘!!ⁿ′ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
+    ⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt !!ⁿ (sels2 ++ [])
+      ≡⟨ cong (_!!ⁿ_ (⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt))
               (proj₂ LM.identity sels2) ⟩
-    replaceAt (sels2 ++ sels1) ⟪ [] ⟫ⁿ nt !!ⁿ sels2
+    ⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt !!ⁿ sels2
   ∎
 
 --
