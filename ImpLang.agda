@@ -8,6 +8,7 @@ open import Data.Nat
 open import Data.List
 open import Data.Maybe
 open import Data.Product
+open import Data.Empty
 
 open import Function
 open import Function.Equivalence
@@ -15,7 +16,7 @@ open import Function.Equivalence
 
 open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality as P
-  using (_≡_; refl; cong; subst; inspect; module ≡-Reasoning)
+  using (_≡_; refl; trans; cong; subst; inspect; module ≡-Reasoning)
   renaming ([_] to [_]ⁱ)
 
 import Function.Related as Related
@@ -33,6 +34,10 @@ open import PositiveInfo
 -- We embed the language of simple expressions inside a small
 -- imperative language with assignments and while-loops (called here SWhile).
 
+-----------------------------------------------------
+-- SWhile language
+-----------------------------------------------------
+
 infix 4 var≔_ while[_]_
 infixr 4 _//_
 
@@ -45,7 +50,9 @@ data Stmt : Set where
 -- its evaluator as a total Agda function.
 -- Thus we specify its semantics as a relation.
 
+-----------------------------------------------------
 -- Big-step evaluation relation for SWhile programs
+-----------------------------------------------------
 
 infix 3 _⊨_⇓_
 
@@ -70,10 +77,57 @@ data _⊨_⇓_ : Stmt → Val → Val → Set where
     s ⊨ v ⇓ v′ → while[ cond ] s ⊨ v′ ⇓ v′′ →
     while[ cond ] s ⊨ v ⇓ v′′
 
+-----------------------------------------------------
+-- _⊨_⇓_ is deterministic
+-----------------------------------------------------
+
+-- ⊨-det
+
+⊨-det :
+  {s : Stmt} {v v′ v′′ : Val} →
+  s ⊨ v ⇓ v′ → s ⊨ v ⇓ v′′ → v′ ≡ v′′
+
+⊨-det ⇓-var≔ ⇓-var≔ = refl
+
+⊨-det (⇓-Seq h₁ h₂) (⇓-Seq g₁ g₂)
+  rewrite ⊨-det h₁ g₁ | ⊨-det h₂ g₂
+  = refl
+
+⊨-det (⇓-WhileNil h) (⇓-WhileNil g) = refl
+
+⊨-det (⇓-WhileNil f₁) (⇓-WhileBottom f₂) =
+  ⊥-elim (↯ˣ≢[]ˣ (trans (P.sym f₂) f₁))
+
+⊨-det (⇓-WhileNil f₁) (⇓-WhileCons f₂ g₁ g₂) =
+  ⊥-elim (∷ˣ≢[]ˣ (trans (P.sym f₂) f₁))
+
+⊨-det (⇓-WhileBottom f₁) (⇓-WhileNil f₂) =
+  ⊥-elim (↯ˣ≢[]ˣ (trans (P.sym f₁) f₂))
+
+⊨-det (⇓-WhileBottom f₁) (⇓-WhileBottom f₂) = refl
+
+⊨-det (⇓-WhileBottom f₁) (⇓-WhileCons f₂ g₁ g₂) =
+  ⊥-elim (∷ˣ≢↯ˣ (trans (P.sym f₂) f₁))
+
+⊨-det (⇓-WhileCons f₁ h₁ h₂) (⇓-WhileNil f₂) =
+  ⊥-elim (∷ˣ≢[]ˣ (trans (P.sym f₁) f₂))
+
+⊨-det (⇓-WhileCons f₁ h₁ h₂) (⇓-WhileBottom f₂) =
+  ⊥-elim (∷ˣ≢↯ˣ (trans (P.sym f₁) f₂))
+
+⊨-det (⇓-WhileCons f₁ h₁ h₂) (⇓-WhileCons f₂ g₁ g₂)
+  rewrite ⊨-det h₁ g₁ | ⊨-det h₂ g₂
+  = refl
+
+
 -- A `KNF` program contains a single while loop.
 -- This is an analog of Kleene's normal form (KNF) from recursion theory.
 -- An analog of the "Kleene normal form" for SWhile programs
 -- can be represented as a record of 4 simple expressions
+
+-----------------------------------------------------
+-- KNF language
+-----------------------------------------------------
 
 record KNFProg : Set where
   constructor KNF
@@ -86,7 +140,9 @@ record KNFProg : Set where
 open KNFProg public
 
 
+-----------------------------------------------------
 -- Big-step evaluation relation for KNF programs
+-----------------------------------------------------
 
 infix 4 [_]_⊨While_⇓_
 
@@ -181,6 +237,19 @@ KNFtoProg knf =
 
 ⊨KNF⇔⊨ =
   equivalence ⊨KNF⇒⊨ ⊨⇒⊨KNF
+
+-----------------------------------------------------
+-- _⊨KNF_⇓_ is deterministic.
+-----------------------------------------------------
+
+-- ⊨KNF-det
+
+⊨KNF-det :
+  ∀ {knf v v′ v′′} →
+  knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′′ → v′ ≡ v′′
+
+⊨KNF-det {knf} {v} {v′} {v′′} h₁ h₂ =
+  ⊨-det (⊨KNF⇒⊨ h₁) (⊨KNF⇒⊨ h₂)
 
 -----------------------------------------------
 -- Many optimizing transformations are valid
@@ -439,6 +508,21 @@ exec⇒-⇓ (suc i) (while[ t ] s) v .↯ˣ refl | ↯ˣ | [ f ]ⁱ =
   equivalence (⇓-⇒exec s v v′)
               (λ {(i , h) → exec⇒-⇓ i s v v′ h})
 
+
+-----------------------------------------------------
+-- exec is deterministic
+-----------------------------------------------------
+
+-- exec-det
+
+exec-det :
+  ∀ {s v v′ v′′} →
+    (∃ λ (i : ℕ) → exec i s v ≡ just v′) →
+    (∃ λ (i′ : ℕ) → exec i′ s v ≡ just v′′) →
+    v′ ≡ v′′
+
+exec-det {s} {v} {v′} {v′′} (i , h₁) (i′ , h₂) =
+  ⊨-det (exec⇒-⇓ i s v v′ h₁) (exec⇒-⇓ i′ s v v′′ h₂)
 
 ----------------------------------------------------------
 -- Evaluation semantics for KNF programs.
