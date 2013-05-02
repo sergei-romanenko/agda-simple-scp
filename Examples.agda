@@ -48,11 +48,11 @@ revList-prog = refl
 listToVal : List Val → Val
 listToVal vs = foldr _∷ˣ_ []ˣ vs
 
-evalKNF₁ :
-  evalKNF 3 revList-knf (listToVal ([]ˣ ∷ ([]ˣ ∷ˣ []ˣ) ∷ []))
+execKNF₁ :
+  execKNF 3 revList-knf (listToVal ([]ˣ ∷ ([]ˣ ∷ˣ []ˣ) ∷ []))
   ≡
   just (([]ˣ ∷ˣ []ˣ) ∷ˣ ([]ˣ ∷ˣ []ˣ))
-evalKNF₁ = refl
+execKNF₁ = refl
 
 --
 -- Examples of supercompilation

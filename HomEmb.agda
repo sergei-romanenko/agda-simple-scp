@@ -9,9 +9,6 @@ open import Data.Nat.Properties
 open import Data.List
 open import Data.List.Any
   using (here; there; module Membership-≡)
---open import Data.Fin
---  using (Fin; zero; suc; toℕ)
---  renaming (_<_ to _<F_)
 open import Data.Bool
 open import Data.Vec
 open import Data.Maybe

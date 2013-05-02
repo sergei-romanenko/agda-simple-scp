@@ -247,24 +247,24 @@ unrolling-preserves-Pcond  {knf} {unroll} n unroll≡ P =
   ∎
   where open Related.EquationalReasoning
 
--- evalKNF-unrolling
+-- execKNF-unrolling
 
-evalKNF-unrolling :
+execKNF-unrolling :
   ∀ knf unroll v v′ n →
   PreservesCond unroll →
   StrictKNF knf →
   ⊨KNF-unroller unroll →
-  (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-  (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll n) v ≡ just v′)
+  (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′) ⇔
+  (∃ λ (i′ : ℕ) → execKNF i′ (fold knf unroll n) v ≡ just v′)
 
-evalKNF-unrolling knf unroll v v′ n pcond hs hu =
-  (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
-    ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
+execKNF-unrolling knf unroll v v′ n pcond hs hu =
+  (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′)
+    ∼⟨ sym $ ⊨KNF⇔execKNF ⟩
   knf ⊨KNF v ⇓ v′
     ∼⟨ ⊨KNF-unrolling n pcond hs hu ⟩
   fold knf unroll n ⊨KNF v ⇓ v′
-    ∼⟨ ⊨KNF⇔evalKNF ⟩
-  (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll n) v ≡ just v′)
+    ∼⟨ ⊨KNF⇔execKNF ⟩
+  (∃ λ (i′ : ℕ) → execKNF i′ (fold knf unroll n) v ≡ just v′)
   ∎
   where open Related.EquationalReasoning
 
@@ -291,18 +291,18 @@ sscpCore-correct :
     StrictKNF knf →
     ⊨KNF-unroller unroll →
     sscpCore b unroll n knf ≡ just knf′ →
-      (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-      (∃ λ (i′ : ℕ) → evalKNF i′ knf′  v ≡ just v′)
+      (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′) ⇔
+      (∃ λ (i′ : ℕ) → execKNF i′ knf′  v ≡ just v′)
 
 sscpCore-correct unroll b knf knf′ v v′ n pcond hs hu hc
   with sscpCore-is-fold unroll b n knf knf′ hc
 ... | m , ≡unfold =
-    (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
-      ∼⟨ evalKNF-unrolling knf unroll v v′ m pcond hs hu ⟩
-    (∃ λ (i′ : ℕ) → evalKNF i′ (fold knf unroll m) v ≡ just v′)
-      ≡⟨ cong (λ z → ∃ (λ (i′ : ℕ) → evalKNF i′ z v ≡ just v′))
+    (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′)
+      ∼⟨ execKNF-unrolling knf unroll v v′ m pcond hs hu ⟩
+    (∃ λ (i′ : ℕ) → execKNF i′ (fold knf unroll m) v ≡ just v′)
+      ≡⟨ cong (λ z → ∃ (λ (i′ : ℕ) → execKNF i′ z v ≡ just v′))
               (P.sym $ ≡unfold) ⟩
-    (∃ λ (i′ : ℕ) → evalKNF i′ knf′ v ≡ just v′)
+    (∃ λ (i′ : ℕ) → execKNF i′ knf′ v ≡ just v′)
     ∎
     where open Related.EquationalReasoning
 
@@ -312,8 +312,8 @@ sscp-correct :
   ∀ b knf knf′ n v v′ → 
     StrictKNF knf →
     sscp b n knf ≡ just knf′ →
-      (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
-      (∃ λ (i′ : ℕ) → evalKNF i′ knf′  v ≡ just v′)
+      (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′) ⇔
+      (∃ λ (i′ : ℕ) → execKNF i′ knf′  v ≡ just v′)
 
 sscp-correct b knf knf′ n v v′ hs hc =
   sscpCore-correct unrollToInit b knf knf′ v v′ n

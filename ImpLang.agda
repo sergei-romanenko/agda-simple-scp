@@ -530,35 +530,35 @@ exec-det {s} {v} {v′} {v′′} (i , h₁) (i′ , h₂) =
 -- in order to make functions total.
 ----------------------------------------------------------
 
--- evalKNFCore
+-- execKNFCore
 
-evalKNFCore : (i : ℕ) (cond e : Trm) (v : Val) → Maybe Val
-evalKNFCore′ : (i : ℕ) (cond e : Trm) (v : Val) (r : Val) → Maybe Val
+execKNFCore : (i : ℕ) (cond e : Trm) (v : Val) → Maybe Val
+execKNFCore′ : (i : ℕ) (cond e : Trm) (v : Val) (r : Val) → Maybe Val
 
-evalKNFCore zero cond e v = nothing
+execKNFCore zero cond e v = nothing
 
-evalKNFCore (suc i) cond e v =
-  evalKNFCore′ i cond e v (⟦ cond ⟧ v)
+execKNFCore (suc i) cond e v =
+  execKNFCore′ i cond e v (⟦ cond ⟧ v)
 
-evalKNFCore′ i cond e v []ˣ =
+execKNFCore′ i cond e v []ˣ =
   just v
 
-evalKNFCore′ i cond e v (v1 ∷ˣ v2) =
-  evalKNFCore i cond e (⟦ e ⟧ v)
+execKNFCore′ i cond e v (v1 ∷ˣ v2) =
+  execKNFCore i cond e (⟦ e ⟧ v)
 
-evalKNFCore′ i cond e v ↯ˣ =
+execKNFCore′ i cond e v ↯ˣ =
   just ↯ˣ
 
--- evalKNF
+-- execKNF
 
-evalKNF : (i : ℕ) (knf : KNFProg) (v : Val) → Maybe Val
-evalKNF′ : (final : Trm) (r : Maybe Val) → Maybe Val
+execKNF : (i : ℕ) (knf : KNFProg) (v : Val) → Maybe Val
+execKNF′ : (final : Trm) (r : Maybe Val) → Maybe Val
 
-evalKNF i (KNF init cond body final) v =
-  evalKNF′ final (evalKNFCore i cond body (⟦ init ⟧ v))
+execKNF i (KNF init cond body final) v =
+  execKNF′ final (execKNFCore i cond body (⟦ init ⟧ v))
 
-evalKNF′ final (just v′) = just (⟦ final ⟧ v′)
-evalKNF′ final nothing = nothing
+execKNF′ final (just v′) = just (⟦ final ⟧ v′)
+execKNF′ final nothing = nothing
 
 
 ---------------------------------------------------------
@@ -566,109 +566,109 @@ evalKNF′ final nothing = nothing
 -- to the relational KNF semantics.
 ---------------------------------------------------------
 
--- ⊨While⇒evalKNFCore
+-- ⊨While⇒execKNFCore
 
-⊨While⇒evalKNFCore :
+⊨While⇒execKNFCore :
   ∀ {cond e v v′} →
     [ cond ] e ⊨While v ⇓ v′ →
-    (∃ λ (i : ℕ) → evalKNFCore i cond e v ≡ just v′)
+    (∃ λ (i : ℕ) → execKNFCore i cond e v ≡ just v′)
 
-⊨While⇒evalKNFCore (⇓-WhileNil {cond} {e} {v} ≡[]ˣ) =
+⊨While⇒execKNFCore (⇓-WhileNil {cond} {e} {v} ≡[]ˣ) =
   suc zero , (begin
-  evalKNFCore′ 0 cond e v (⟦ cond ⟧ v)
-    ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡[]ˣ ⟩
-  evalKNFCore′ 0 cond e v []ˣ
+  execKNFCore′ 0 cond e v (⟦ cond ⟧ v)
+    ≡⟨ cong (execKNFCore′ 0 cond e v) ≡[]ˣ ⟩
+  execKNFCore′ 0 cond e v []ˣ
     ≡⟨ refl ⟩
   just v
   ∎)
   where open ≡-Reasoning
 
-⊨While⇒evalKNFCore (⇓-WhileBottom {cond} {e} {v} ≡↯ˣ) =
+⊨While⇒execKNFCore (⇓-WhileBottom {cond} {e} {v} ≡↯ˣ) =
   (suc zero) , (begin
-  evalKNFCore′ 0 cond e v (⟦ cond ⟧ v)
-    ≡⟨ cong (evalKNFCore′ 0 cond e v) ≡↯ˣ ⟩
-  evalKNFCore′ 0 cond e v ↯ˣ
+  execKNFCore′ 0 cond e v (⟦ cond ⟧ v)
+    ≡⟨ cong (execKNFCore′ 0 cond e v) ≡↯ˣ ⟩
+  execKNFCore′ 0 cond e v ↯ˣ
     ≡⟨ refl ⟩
   just ↯ˣ
   ∎)
   where open ≡-Reasoning
 
-⊨While⇒evalKNFCore (⇓-WhileCons {cond} {e} {v} {v′′} {vh} {vt} ≡∷ˣ h)
-  with ⊨While⇒evalKNFCore h
+⊨While⇒execKNFCore (⇓-WhileCons {cond} {e} {v} {v′′} {vh} {vt} ≡∷ˣ h)
+  with ⊨While⇒execKNFCore h
 ... | i , g = suc i , (begin
-  evalKNFCore′ i cond e v (⟦ cond ⟧ v)
-    ≡⟨ cong (evalKNFCore′ i cond e v) ≡∷ˣ ⟩
-  evalKNFCore′ i cond e v (vt ∷ˣ vt)
+  execKNFCore′ i cond e v (⟦ cond ⟧ v)
+    ≡⟨ cong (execKNFCore′ i cond e v) ≡∷ˣ ⟩
+  execKNFCore′ i cond e v (vt ∷ˣ vt)
     ≡⟨ g ⟩
   just v′′
   ∎)
   where open ≡-Reasoning
 
--- ⊨KNF⇒evalKNF
+-- ⊨KNF⇒execKNF
 
-⊨KNF⇒evalKNF :
+⊨KNF⇒execKNF :
   ∀ {knf v v′} →
     knf ⊨KNF v ⇓ v′ →
-    (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
+    (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′)
 
-⊨KNF⇒evalKNF (⇓-eval {init} {cond} {body} {final} {v} {v′} h)
-  with ⊨While⇒evalKNFCore h
+⊨KNF⇒execKNF (⇓-eval {init} {cond} {body} {final} {v} {v′} h)
+  with ⊨While⇒execKNFCore h
 ... | i , g = i , (begin
-  evalKNF′ final (evalKNFCore i cond body (⟦ init ⟧ v))
-    ≡⟨ cong (evalKNF′ final) g ⟩
-  evalKNF′ final (just v′)
+  execKNF′ final (execKNFCore i cond body (⟦ init ⟧ v))
+    ≡⟨ cong (execKNF′ final) g ⟩
+  execKNF′ final (just v′)
     ≡⟨ refl ⟩
   just (⟦ final ⟧ v′)
   ∎)
   where open ≡-Reasoning
 
--- evalKNFCore⇒⊨While
+-- execKNFCore⇒⊨While
 
-evalKNFCore⇒⊨While :
+execKNFCore⇒⊨While :
   ∀ i {cond e v v′} →
-    evalKNFCore i cond e v ≡ just v′ →
+    execKNFCore i cond e v ≡ just v′ →
     [ cond ] e ⊨While v ⇓ v′
 
-evalKNFCore⇒⊨While zero ()
+execKNFCore⇒⊨While zero ()
 
-evalKNFCore⇒⊨While (suc i) {cond} {e} {v} {v′} h
+execKNFCore⇒⊨While (suc i) {cond} {e} {v} {v′} h
   with ⟦ cond ⟧ v | inspect ⟦ cond ⟧ v
 
-evalKNFCore⇒⊨While (suc i) refl | []ˣ | [ ≡[]ˣ ]ⁱ =
+execKNFCore⇒⊨While (suc i) refl | []ˣ | [ ≡[]ˣ ]ⁱ =
   ⇓-WhileNil ≡[]ˣ
 
-evalKNFCore⇒⊨While (suc i) h | v1 ∷ˣ v2  | [ ≡∷ˣ ]ⁱ =
-  ⇓-WhileCons ≡∷ˣ (evalKNFCore⇒⊨While i h)
+execKNFCore⇒⊨While (suc i) h | v1 ∷ˣ v2  | [ ≡∷ˣ ]ⁱ =
+  ⇓-WhileCons ≡∷ˣ (execKNFCore⇒⊨While i h)
 
-evalKNFCore⇒⊨While (suc i) refl | ↯ˣ  | [ ≡↯ˣ ]ⁱ =
+execKNFCore⇒⊨While (suc i) refl | ↯ˣ  | [ ≡↯ˣ ]ⁱ =
   ⇓-WhileBottom ≡↯ˣ
 
--- evalKNF⇒⊨KNF
+-- execKNF⇒⊨KNF
 
-evalKNF⇒⊨KNF :
+execKNF⇒⊨KNF :
   ∀ i {knf v v′} →
-    evalKNF i knf v ≡ just v′ →
+    execKNF i knf v ≡ just v′ →
     knf ⊨KNF v ⇓ v′
 
-evalKNF⇒⊨KNF i {KNF init cond body final} {v} {v′} h
-  with evalKNFCore i cond body (⟦ init ⟧ v)
-     | inspect (evalKNFCore i cond body) (⟦ init ⟧ v)
+execKNF⇒⊨KNF i {KNF init cond body final} {v} {v′} h
+  with execKNFCore i cond body (⟦ init ⟧ v)
+     | inspect (execKNFCore i cond body) (⟦ init ⟧ v)
 
-evalKNF⇒⊨KNF i {KNF init cond body final} refl | just v′ | [ ≡v′ ]ⁱ =
-  ⇓-eval (evalKNFCore⇒⊨While i ≡v′)
+execKNF⇒⊨KNF i {KNF init cond body final} refl | just v′ | [ ≡v′ ]ⁱ =
+  ⇓-eval (execKNFCore⇒⊨While i ≡v′)
 
-evalKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
+execKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
 
--- ⊨KNF⇔evalKNF
+-- ⊨KNF⇔execKNF
 
-⊨KNF⇔evalKNF :
+⊨KNF⇔execKNF :
   ∀ {knf v v′} →
     (knf ⊨KNF v ⇓ v′) ⇔
-    (∃ λ (i : ℕ) → evalKNF i knf v ≡ just v′)
+    (∃ λ (i : ℕ) → execKNF i knf v ≡ just v′)
 
-⊨KNF⇔evalKNF =
-  equivalence ⊨KNF⇒evalKNF
-              (λ {(i , h) → evalKNF⇒⊨KNF i h})
+⊨KNF⇔execKNF =
+  equivalence ⊨KNF⇒execKNF
+              (λ {(i , h) → execKNF⇒⊨KNF i h})
 
 
 ---------------------------------------------------------
@@ -676,16 +676,16 @@ evalKNF⇒⊨KNF i {KNF init cond body final} () | nothing | [ ≡v′ ]ⁱ
 -- to the SWhile interpreter.
 ---------------------------------------------------------
 
--- evalKNF⇔exec
+-- execKNF⇔exec
 
-evalKNF⇔exec :
+execKNF⇔exec :
   ∀ knf v v′ →
-    ∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′) ⇔
+    ∃ (λ (i : ℕ) → execKNF i knf v ≡ just v′) ⇔
     ∃ (λ (j : ℕ) → exec j (KNFtoProg knf) v ≡ just v′)
 
-evalKNF⇔exec knf v v′ =
-  (∃ (λ (i : ℕ) → evalKNF i knf v ≡ just v′))
-    ∼⟨ sym $ ⊨KNF⇔evalKNF ⟩
+execKNF⇔exec knf v v′ =
+  (∃ (λ (i : ℕ) → execKNF i knf v ≡ just v′))
+    ∼⟨ sym $ ⊨KNF⇔execKNF ⟩
   knf ⊨KNF v ⇓ v′
     ∼⟨ ⊨KNF⇔⊨ ⟩
   KNFtoProg knf ⊨ v ⇓ v′

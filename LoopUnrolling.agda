@@ -30,9 +30,9 @@ open import ExpLang
 open import PositiveInfo
 open import ImpLang
 
---
+-----------------
 -- ⊨KNF-unroller
---
+-----------------
 
 ⊨KNF-unroller : (KNFProg → KNFProg) → Set
 
