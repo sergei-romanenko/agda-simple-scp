@@ -33,6 +33,17 @@ data Val : Set where
   _∷ˣ_ : (v1 v2 : Val) → Val
   ↯ˣ   : Val 
 
+-- v₁ ≢ v₂
+
+∷ˣ≢[]ˣ : ∀ {v1 v2} → v1 ∷ˣ v2 ≢ []ˣ
+∷ˣ≢[]ˣ = λ ()
+
+∷ˣ≢↯ˣ : ∀ {v1 v2} → v1 ∷ˣ v2 ≢ ↯ˣ
+∷ˣ≢↯ˣ = λ ()
+
+↯ˣ≢[]ˣ : ↯ˣ ≢ []ˣ
+↯ˣ≢[]ˣ = λ ()
+
 -------------
 -- Selectors
 -------------
@@ -66,13 +77,15 @@ v !! (x ∷ xs) = (v ! x) !! xs
 !!-is-foldl v [] = refl
 !!-is-foldl v (x ∷ xs) = !!-is-foldl (v ! x) xs
 
--- !!-↯ˣ
+-- _!!_ is strict.
 
-!!-↯ˣ : ∀ (sels : List Selector) →
+-- ↯ˣ-!!
+
+↯ˣ-!! : ∀ (sels : List Selector) →
   ↯ˣ !! sels ≡ ↯ˣ
 
-!!-↯ˣ [] = refl
-!!-↯ˣ (sel ∷ sels) = !!-↯ˣ sels
+↯ˣ-!! [] = refl
+↯ˣ-!! (sel ∷ sels) = ↯ˣ-!! sels
 
 -- !!∘++
 
@@ -149,7 +162,7 @@ ifNil∘ifNil ↯ˣ = refl
     ifNil v0 (v1 !! sels) (v2 !! sels)
 
 !!∘ifNil v0 {v1} {v2} sels =
-  ifNil-distr (flip _!!_ sels) (!!-↯ˣ sels) v0
+  ifNil-distr (flip _!!_ sels) (↯ˣ-!! sels) v0
 
 -- !∘ifNil
 
@@ -342,7 +355,7 @@ IfNilⁿ sels nt1 nt2 !ⁿ sel =
   IfNilⁿ sels (nt1 !ⁿ sel) (nt2 !ⁿ sel)
 ↯ⁿ !ⁿ sel = ↯ⁿ
 
--- Corrctness of !ⁿ
+-- _!ⁿ_ is correct with respect to _!_
 
 -- ⟦⌈⌉⟧∘!ⁿ
 
@@ -405,14 +418,20 @@ IfNilⁿ sels nt1 nt2 !ⁿ sel =
 -- _!!ⁿ_
 
 _!!ⁿ_ : (nt : NTrm) (sels : List Selector) → NTrm
+
 nt !!ⁿ sels =
   foldl _!ⁿ_ nt sels
 
--- !!ⁿ-↯ⁿ
+-- _!!ⁿ_ is strict.
 
-!!ⁿ-↯ⁿ : ∀ sels → ↯ⁿ !!ⁿ sels ≡ ↯ⁿ
-!!ⁿ-↯ⁿ [] = refl
-!!ⁿ-↯ⁿ (x ∷ xs) = !!ⁿ-↯ⁿ xs
+-- ↯ⁿ-!!ⁿ
+
+↯ⁿ-!!ⁿ : ∀ sels → ↯ⁿ !!ⁿ sels ≡ ↯ⁿ
+
+↯ⁿ-!!ⁿ [] = refl
+↯ⁿ-!!ⁿ (x ∷ xs) = ↯ⁿ-!!ⁿ xs
+
+-- _!!ⁿ_ is correct with respect to _!!_
 
 -- ⟦⌈⌉⟧∘!!ⁿ
 
@@ -477,6 +496,8 @@ IfNilⁿ sels2 nt1 nt2 ○⟪ sels ⟫ⁿ =
   IfNilⁿ (sels ++ sels2) (nt1 ○⟪ sels ⟫ⁿ) (nt2 ○⟪ sels ⟫ⁿ)
 ↯ⁿ ○⟪ sels ⟫ⁿ =
   ↯ⁿ
+
+-- _○⟪_⟫ⁿ is correct with respect to _!!_
 
 -- ⟦⌈⌉⟧∘○⟪⟫ⁿ
 
@@ -976,24 +997,24 @@ t [ TL ∷ sels ]≔ⁿ t′ =
     (⟦⌈ t ⌉⟧ v ! HD) ∷ˣ (⟦⌈ t ⌉⟧ v ! TL) [ sels ]≔ ⟦⌈ t′ ⌉⟧ v
   ∎
 
--- !!ⁿ∘[]≔ⁿ
+-- !!ⁿ∘[]≔ⁿ-id
 
-!!ⁿ∘[]≔ⁿ : (sels : List Selector) (t t′ : NTrm) →
+!!ⁿ∘[]≔ⁿ-id : (sels : List Selector) (t t′ : NTrm) →
   t [ sels ]≔ⁿ t′ !!ⁿ sels ≡ t′
 
-!!ⁿ∘[]≔ⁿ [] t t′ = refl
-!!ⁿ∘[]≔ⁿ (HD ∷ sels) t t′ = begin
+!!ⁿ∘[]≔ⁿ-id [] t t′ = refl
+!!ⁿ∘[]≔ⁿ-id (HD ∷ sels) t t′ = begin
   t [ HD ∷ sels ]≔ⁿ t′ !!ⁿ HD ∷ sels
     ≡⟨ refl ⟩
   (t !ⁿ HD) [ sels ]≔ⁿ t′ !!ⁿ sels
-    ≡⟨ !!ⁿ∘[]≔ⁿ sels (t !ⁿ HD) t′ ⟩
+    ≡⟨ !!ⁿ∘[]≔ⁿ-id sels (t !ⁿ HD) t′ ⟩
   t′
   ∎
-!!ⁿ∘[]≔ⁿ (TL ∷ sels) t t′ = begin
+!!ⁿ∘[]≔ⁿ-id (TL ∷ sels) t t′ = begin
   t [ TL ∷ sels ]≔ⁿ t′ !!ⁿ (TL ∷ sels)
     ≡⟨ refl ⟩
   (t !ⁿ TL) [ sels ]≔ⁿ t′ !!ⁿ sels
-    ≡⟨ !!ⁿ∘[]≔ⁿ sels (t !ⁿ TL) t′ ⟩
+    ≡⟨ !!ⁿ∘[]≔ⁿ-id sels (t !ⁿ TL) t′ ⟩
   t′
   ∎
 
@@ -1071,20 +1092,22 @@ commonPrefix-[] :
 commonPrefix-[] eq [] = refl
 commonPrefix-[] eq (x ∷ xs) = refl
 
--- []≔ⁿ∘++∘!!ⁿ
+-- !!ⁿ∘[]≔ⁿ∘++
 
-[]≔ⁿ∘++∘!!ⁿ′ :
+!!ⁿ∘[]≔ⁿ∘++ :
   ∀ (ws us vs : List Selector) (nt nt′ : NTrm) →
     nt [ ws ++ vs ]≔ⁿ nt′ !!ⁿ ws ++ us
       ≡ (nt !!ⁿ ws) [ vs ]≔ⁿ nt′ !!ⁿ us
 
-[]≔ⁿ∘++∘!!ⁿ′ [] us vs nt nt′ = refl
-[]≔ⁿ∘++∘!!ⁿ′ (HD ∷ ws) us vs nt nt′ =
-  []≔ⁿ∘++∘!!ⁿ′ ws us vs (nt !ⁿ HD) nt′
-[]≔ⁿ∘++∘!!ⁿ′ (TL ∷ ws) us vs nt nt′ =
-  []≔ⁿ∘++∘!!ⁿ′ ws us vs (nt !ⁿ TL) nt′
+!!ⁿ∘[]≔ⁿ∘++ [] us vs nt nt′ = refl
+!!ⁿ∘[]≔ⁿ∘++ (HD ∷ ws) us vs nt nt′ =
+  !!ⁿ∘[]≔ⁿ∘++ ws us vs (nt !ⁿ HD) nt′
+!!ⁿ∘[]≔ⁿ∘++ (TL ∷ ws) us vs nt nt′ =
+  !!ⁿ∘[]≔ⁿ∘++ ws us vs (nt !ⁿ TL) nt′
 
-[]≔ⁿ∘++∘!!ⁿ :
+-- !!ⁿ∘[]≔ⁿ-prefix
+
+!!ⁿ∘[]≔ⁿ-prefix :
   ∀ (sels1 sels2 : List Selector) (nt nt′ : NTrm) →
     let cp = commonPrefix? _≟Sel_ sels1 sels2
         ws = proj₁ cp
@@ -1093,10 +1116,10 @@ commonPrefix-[] eq (x ∷ xs) = refl
     in nt [ sels2 ]≔ⁿ nt′ !!ⁿ sels1
        ≡ (nt !!ⁿ ws) [ vs ]≔ⁿ nt′ !!ⁿ us
 
-[]≔ⁿ∘++∘!!ⁿ sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 sels2
+!!ⁿ∘[]≔ⁿ-prefix sels1 sels2 nt nt′ with commonPrefix? _≟Sel_ sels1 sels2
 ... | ws , us , vs , sels1≡ws++us , sels2≡ws++vs
   rewrite sels1≡ws++us | sels2≡ws++vs =
-  []≔ⁿ∘++∘!!ⁿ′ ws us vs nt nt′
+  !!ⁿ∘[]≔ⁿ∘++ ws us vs nt nt′
 
 
 -- []≔ⁿ∘⟪⟫ⁿ
@@ -1113,9 +1136,9 @@ commonPrefix-[] eq (x ∷ xs) = refl
       ≡⟨ cong (λ z → z [ sels1 ]≔ⁿ  nt !!ⁿ [])
               (sym $ !!ⁿ∘⟪⟫ⁿ [] sels2) ⟩
     (⟪ [] ⟫ⁿ !!ⁿ sels2) [ sels1 ]≔ⁿ nt !!ⁿ []
-      ≡⟨ sym $ []≔ⁿ∘++∘!!ⁿ [] sels1 (⟪ [] ⟫ⁿ !!ⁿ sels2) nt ⟩
+      ≡⟨ sym $ !!ⁿ∘[]≔ⁿ-prefix [] sels1 (⟪ [] ⟫ⁿ !!ⁿ sels2) nt ⟩
     (⟪ [] ⟫ⁿ !!ⁿ sels2) [ sels1 ]≔ⁿ nt
-      ≡⟨ sym $ []≔ⁿ∘++∘!!ⁿ′ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
+      ≡⟨ sym $ !!ⁿ∘[]≔ⁿ∘++ sels2 [] sels1 ⟪ [] ⟫ⁿ nt ⟩
     ⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt !!ⁿ (sels2 ++ [])
       ≡⟨ cong (_!!ⁿ_ (⟪ [] ⟫ⁿ [ sels2 ++ sels1 ]≔ⁿ nt))
               (proj₂ LM.identity sels2) ⟩

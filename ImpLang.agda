@@ -219,7 +219,7 @@ strictNTrm? ⟪ sels ⟫ⁿ = yes $ begin
   ⟦ ⟪ sels ⟫ ⟧ ↯ˣ
     ≡⟨ ⟦⟧∘⟪⟫ sels ↯ˣ ⟩
   ↯ˣ !! sels
-    ≡⟨ !!-↯ˣ sels ⟩
+    ≡⟨ ↯ˣ-!! sels ⟩
   ↯ˣ
   ∎
   where open ≡-Reasoning
@@ -230,7 +230,7 @@ strictNTrm? (IfNilⁿ sels nt1 nt2) = yes $ begin
     ≡⟨ ifNil-cong (⟦⟧∘⟪⟫ sels ↯ˣ) refl refl ⟩
   ifNil (↯ˣ !! sels)
         (⟦⌈ nt1 ⌉⟧ ↯ˣ) (⟦⌈ nt2 ⌉⟧ ↯ˣ)
-    ≡⟨ ifNil-cong (!!-↯ˣ sels) refl refl ⟩
+    ≡⟨ ifNil-cong (↯ˣ-!! sels) refl refl ⟩
   ↯ˣ
   ∎
   where open ≡-Reasoning
