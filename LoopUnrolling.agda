@@ -20,7 +20,7 @@ open import Function.Equivalence
 
 
 open import Relation.Binary.PropositionalEquality as P
-  using (_≡_; refl; trans; cong; subst; inspect; module ≡-Reasoning)
+  hiding (sym)
   renaming ([_] to [_]ⁱ)
 
 import Function.Related as Related
@@ -30,9 +30,14 @@ open import ExpLang
 open import PositiveInfo
 open import ImpLang
 
------------------
+------------------
+-- ⊨KNF-unrollers
+------------------
+
+-- In this module, the main result will be that
+--   ⊨KNF-unroller norm∘KNF-unroll .
+
 -- ⊨KNF-unroller
------------------
 
 ⊨KNF-unroller : (KNFProg → KNFProg) → Set
 
@@ -41,163 +46,157 @@ open import ImpLang
     StrictKNF knf →
     (knf ⊨KNF v ⇓ v′) ⇔ (unroll knf ⊨KNF v ⇓ v′)
 
--- unrollToInit
+-- norm∘KNF-unroll
 
-unrollToInit : KNFProg → KNFProg
+norm∘KNF-unroll : KNFProg → KNFProg
 
-unrollToInit (KNF initExp condExp bodyExp finalExp) =
-  KNF newInit condExp bodyExp finalExp
-  where newInit = ⌈ norm $ (IfNil condExp Id bodyExp) $$ initExp ⌉
+norm∘KNF-unroll (KNF init cond body final) =
+  KNF newInit cond body final
+  where newInit = ⌈ norm $ (IfNil cond Id body) $$ init ⌉
 
------------------------------------
--- Unrolling respects the semantics
------------------------------------
+--------------------
+-- ⊨While-unrollers
+--------------------
 
--- ⊨While-unrollToInit⇒
+⊨While-unroller : (Trm → Trm → Trm) → Set
 
-⊨While-unrollToInit⇒ :
-  ∀  {cond e v v′} →
+⊨While-unroller unroll =
+  ∀  {cond body v v′} →
     StrictTrm cond →
-    [ cond ] e ⊨While v ⇓ v′ →
-    [ cond ] e ⊨While ⟦ IfNil cond Id e ⟧ v ⇓  v′
+    [ cond ] body ⊨While v ⇓ v′ ⇔
+    [ cond ] body ⊨While ⟦ unroll cond body ⟧ v ⇓  v′
 
-⊨While-unrollToInit⇒ hs (⇓-WhileNil ≡[]ˣ) rewrite ≡[]ˣ =
+-- while-unroll
+
+while-unroll : Trm → Trm → Trm
+
+while-unroll cond body = IfNil cond Id body
+
+
+--------------------------------
+-- ⊨While-unroller while-unroll
+--------------------------------
+
+-- ⊨While-unroll⇒
+
+⊨While-unroll⇒ :
+  ∀  {cond body v v′} →
+    StrictTrm cond →
+    [ cond ] body ⊨While v ⇓ v′ →
+    [ cond ] body ⊨While ⟦ while-unroll cond body ⟧ v ⇓  v′
+
+⊨While-unroll⇒ hs (⇓-WhileNil ≡[]ˣ) rewrite ≡[]ˣ =
   ⇓-WhileNil ≡[]ˣ
-⊨While-unrollToInit⇒ hs (⇓-WhileBottom ≡↯ˣ) rewrite ≡↯ˣ =
+⊨While-unroll⇒ hs (⇓-WhileBottom ≡↯ˣ) rewrite ≡↯ˣ =
   ⇓-WhileBottom hs
-⊨While-unrollToInit⇒ hs (⇓-WhileCons ≡∷ˣ h) rewrite ≡∷ˣ =
+⊨While-unroll⇒ hs (⇓-WhileCons ≡∷ˣ h) rewrite ≡∷ˣ =
   h
 
--- ⊨While-unrollToInit⇐
+-- ⊨While-unroll⇐
 
-⊨While-unrollToInit⇐ :
-  ∀  {cond e v v′} →
+⊨While-unroll⇐ :
+  ∀  {cond body v v′} →
     StrictTrm cond →
-    [ cond ] e ⊨While ⟦ IfNil cond Id e ⟧ v ⇓  v′ →
-    [ cond ] e ⊨While v ⇓ v′
+    [ cond ] body ⊨While ⟦ while-unroll cond body ⟧ v ⇓  v′ →
+    [ cond ] body ⊨While v ⇓ v′
 
-⊨While-unrollToInit⇐ {cond} {e} {v} {v′} hs hw
+⊨While-unroll⇐ {cond} {body} {v} {v′} hs hw
   with ⟦ cond ⟧ v | inspect ⟦ cond ⟧ v
 
-⊨While-unrollToInit⇐ hs hw
+⊨While-unroll⇐ hs hw
   | []ˣ | [ g ]ⁱ = hw
 
-⊨While-unrollToInit⇐ hs hw
+⊨While-unroll⇐ hs hw
   | v1 ∷ˣ v2 | [ g ]ⁱ = ⇓-WhileCons g hw
 
-⊨While-unrollToInit⇐ hs (⇓-WhileNil ≡[]ˣ)
+⊨While-unroll⇐ hs (⇓-WhileNil ≡[]ˣ)
   | ↯ˣ | [ g ]ⁱ = ⇓-WhileBottom g
 
-⊨While-unrollToInit⇐ hs (⇓-WhileBottom ≡↯ˣ)
+⊨While-unroll⇐ hs (⇓-WhileBottom ≡↯ˣ)
   | ↯ˣ | [ g ]ⁱ = ⇓-WhileBottom g
 
-⊨While-unrollToInit⇐ hs (⇓-WhileCons ≡∷ˣ h)
+⊨While-unroll⇐ hs (⇓-WhileCons ≡∷ˣ h)
   | ↯ˣ | [ g ]ⁱ =
   ⊥-elim (∷ˣ≢↯ˣ (trans (P.sym ≡∷ˣ) hs))
 
--- ⊨While-unrollToInit
+-- ⊨While-unroll
 
-⊨While-unrollToInit :
-  ∀ {cond e v v′} →
-    StrictTrm cond →
-    [ cond ] e ⊨While v ⇓ v′ ⇔
-    [ cond ] e ⊨While ⟦ IfNil cond Id e ⟧ v ⇓  v′
+⊨While-unroll : ⊨While-unroller while-unroll
 
-⊨While-unrollToInit hs =
-  equivalence (⊨While-unrollToInit⇒ hs) (⊨While-unrollToInit⇐ hs)
+⊨While-unroll hs =
+  equivalence (⊨While-unroll⇒ hs) (⊨While-unroll⇐ hs)
 
--- ⊨While-cong-v
+--------------------------------------
+-- ⊨KNF-unroller norm∘KNF-unroll
+--------------------------------------
 
-⊨While-cong-v :
-  ∀ {cond body v₁ v₂ v′} →
-    v₁ ≡ v₂ →
-    [ cond ] body ⊨While v₁ ⇓ v′ ≡ [ cond ] body ⊨While v₂ ⇓ v′
+-- propagateIfCond∘○
 
-⊨While-cong-v {cond} {body} {v₁} {v₂} {v′} v₁≡v₂ =
-  cong (flip ([_]_⊨While_⇓_ cond body) v′) v₁≡v₂
+propagateIfCond∘○ :
+  ∀ (init body : Trm) →
+    ⟦⌈ propagateIfCond (⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ ≗ ⟦ body ⟧ ∘ ⟦ init ⟧
 
--- ⊨KNF-unrollToInit⇒-lemma₁
-
-⊨KNF-unrollToInit-lemma₁ :
-  ∀ init cond body v →
-      ⟦⌈ propagateIfCond
-         (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v
-      ≡
-      ifNil (⟦ cond ⟧ (⟦ init ⟧ v))
-            (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v))
-
-⊨KNF-unrollToInit-lemma₁ init cond body v = begin
-  ⟦⌈ propagateIfCond
-     (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘propagateIfCond
-       (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) v ⟩
-  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊ ⌉⟧ v
-    ≡⟨ ⟦⌈⌉⟧∘○ (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊) ⌋ init ⌊ v ⟩
-  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧
-             (⟦⌈ ⌋ init ⌊ ⌉⟧ v)
-    ≡⟨ cong ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧
-            (⟦⌈⌉⟧∘⌋⌊ init v) ⟩
-  ⟦⌈ IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ⌉⟧ (⟦ init ⟧ v)
-    ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱
-       (⌋ cond ⌊) ⟪ [] ⟫ⁿ (⌋ body ⌊) (⟦ init ⟧ v) ⟩
-  ifNil (⟦⌈ ⌋ cond ⌊ ⌉⟧ (⟦ init ⟧ v))
-        (⟦⌈ ⟪ [] ⟫ⁿ ⌉⟧ (⟦ init ⟧ v))
-        (⟦⌈ ⌋ body ⌊ ⌉⟧ (⟦ init ⟧ v))
-    ≡⟨ ifNil-cong (⟦⌈⌉⟧∘⌋⌊ cond (⟦ init ⟧ v)) refl
-                  (⟦⌈⌉⟧∘⌋⌊ body (⟦ init ⟧ v)) ⟩
-  ifNil (⟦ cond ⟧ (⟦ init ⟧ v)) (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v))
+propagateIfCond∘○ init body v =
+  begin
+    ⟦⌈ propagateIfCond (⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v
+      ≡⟨ ⟦⌈⌉⟧∘propagateIfCond (⌋ body ⌊ ○ ⌋ init ⌊) v ⟩
+    ⟦⌈ ⌋ body ⌊ ○ ⌋ init ⌊ ⌉⟧ v
+      ≡⟨ ⟦⌈⌉⟧∘○ ⌋ body ⌊ ⌋ init ⌊ v ⟩
+    ⟦⌈ ⌋ body ⌊ ⌉⟧ (⟦⌈ ⌋ init ⌊ ⌉⟧ v)
+      ≡⟨ ⟦⌈⌉⟧∘⌋⌊ body (⟦ ⌈ ⌋ init ⌊ ⌉ ⟧ v) ⟩
+    ⟦ body ⟧ (⟦⌈ ⌋ init ⌊ ⌉⟧ v)
+      ≡⟨ cong ⟦ body ⟧ (⟦⌈⌉⟧∘⌋⌊ init v) ⟩
+    ⟦ body ⟧ (⟦ init ⟧ v)
   ∎
   where open ≡-Reasoning
 
--- ⊨KNF-unrollToInit-lemma₂
+-- ⊨While-propagateIfCond
 
-⊨KNF-unrollToInit-lemma₂ :
-  ∀ (init cond body final : Trm) (v v′ : Val) →
+⊨While-propagateIfCond :
+  ∀ (init cond body : Trm) (v v′ : Val) →
     StrictTrm cond →
     [ cond ] body ⊨While ⟦ init ⟧ v ⇓ v′ ⇔
     [ cond ] body ⊨While
-      ⟦⌈ propagateIfCond
-           (IfNilⁿ⟱ ⌋ cond ⌊ ⟪ [] ⟫ⁿ ⌋ body ⌊ ○ ⌋ init ⌊) ⌉⟧ v ⇓ v′
+      ⟦⌈ propagateIfCond (⌋ while-unroll cond body ⌊ ○ ⌋ init ⌊) ⌉⟧ v ⇓ v′
 
-⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs =
+⊨While-propagateIfCond init cond body v v′ hs =
   [ cond ] body ⊨While ⟦ init ⟧ v ⇓ v′
-    ∼⟨ ⊨While-unrollToInit hs ⟩
+    ∼⟨ ⊨While-unroll hs ⟩
+  [ cond ] body ⊨While ⟦ while-unroll cond body ⟧ (⟦ init ⟧ v) ⇓ v′
+    ≡⟨ cong (flip ([_]_⊨While_⇓_ cond body) v′)
+         (P.sym $ propagateIfCond∘○ init (while-unroll cond body) v) ⟩
   [ cond ] body ⊨While
-    ifNil (⟦ cond ⟧ (⟦ init ⟧ v))
-          (⟦ init ⟧ v) (⟦ body ⟧ (⟦ init ⟧ v)) ⇓ v′
-    ≡⟨ ⊨While-cong-v (P.sym $ ⊨KNF-unrollToInit-lemma₁ init cond body v) ⟩
-  [ cond ] body ⊨While
-    ⟦⌈ propagateIfCond (IfNilⁿ⟱ (⌋ cond ⌊) ⟪ [] ⟫ⁿ (⌋ body ⌊) ○
-                       ⌋ init ⌊) ⌉⟧ v ⇓ v′
+    ⟦⌈ propagateIfCond (⌋ while-unroll cond body ⌊ ○ ⌋ init ⌊) ⌉⟧ v ⇓ v′
   ∎
   where open Related.EquationalReasoning
 
--- ⊨KNF-unrollToInit⇒
+-- ⊨norm∘KNF-unroll-correct⇒
 
-⊨KNF-unrollToInit⇒ :
-  ∀ {knf v v′} →
-    StrictKNF knf →
-    knf ⊨KNF v ⇓ v′ → unrollToInit knf ⊨KNF v ⇓ v′
+⊨norm∘KNF-unroll-correct⇒ :
+  ∀ {knf v v′} → StrictKNF knf →
+    knf ⊨KNF v ⇓ v′ → norm∘KNF-unroll knf ⊨KNF v ⇓ v′
 
-⊨KNF-unrollToInit⇒ hs (⇓-eval {init} {cond} {body} {final} {v} {v′} hw) =
-  ⇓-eval (Equivalence.to
-           (⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs) ⟨$⟩ hw)
+⊨norm∘KNF-unroll-correct⇒
+  {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw)
+  = ⇓-eval (Equivalence.to
+             (⊨While-propagateIfCond init cond body v v′ hs) ⟨$⟩ hw)
 
--- ⊨KNF-unrollToInit⇐
+-- ⊨norm∘KNF-unroll-correct⇐
 
-⊨KNF-unrollToInit⇐ :
-  ∀ {knf v v′} →
-    StrictKNF knf →
-    unrollToInit knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′
+⊨norm∘KNF-unroll-correct⇐ :
+  ∀ {knf v v′} → StrictKNF knf →
+    norm∘KNF-unroll knf ⊨KNF v ⇓ v′ → knf ⊨KNF v ⇓ v′
 
-⊨KNF-unrollToInit⇐ {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw) =
-  ⇓-eval (Equivalence.from
-           (⊨KNF-unrollToInit-lemma₂ init cond body final v v′ hs) ⟨$⟩ hw)
+⊨norm∘KNF-unroll-correct⇐
+  {KNF init cond body final} {v} hs (⇓-eval {v′ = v′} hw)
+  = ⇓-eval (Equivalence.from
+             (⊨While-propagateIfCond init cond body v v′ hs) ⟨$⟩ hw)
 
--- unrollToInit-is-⊨KNF-unroller
+-- ⊨KNF-unroller-with-norm
 
-unrollToInit-is-⊨KNF-unroller : ⊨KNF-unroller unrollToInit
-unrollToInit-is-⊨KNF-unroller hs = 
-  equivalence (⊨KNF-unrollToInit⇒ hs) (⊨KNF-unrollToInit⇐ hs)
+⊨KNF-unroller-with-norm : ⊨KNF-unroller norm∘KNF-unroll
+
+⊨KNF-unroller-with-norm hs = 
+  equivalence (⊨norm∘KNF-unroll-correct⇒ hs) (⊨norm∘KNF-unroll-correct⇐ hs)
 
 --

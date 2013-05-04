@@ -116,7 +116,7 @@ sscpCore alwaysJust unroll n knf =
 sscp : (alwaysJust : Bool) (n : ℕ) (knf : KNFProg) → Maybe KNFProg
 
 sscp alwaysJust n knf = 
-  sscpCore alwaysJust unrollToInit n knf
+  sscpCore alwaysJust norm∘KNF-unroll n knf
 
 
 -- Alternatively, we define a cut-down version, which uses `⌋_⌊`
@@ -178,7 +178,7 @@ sscpCore-total b unroll knf =
 sscp-total : ∀ b knf →
   ∃₂ λ n knf′ → sscp b n knf ≡ just knf′
 
-sscp-total b knf with sscpCore-total b unrollToInit knf
+sscp-total b knf with sscpCore-total b norm∘KNF-unroll knf
 ... | n , knf′ , ≡knf′ = n , knf′ , ≡knf′
 
 
@@ -316,7 +316,7 @@ sscp-correct :
       (∃ λ (i′ : ℕ) → execKNF i′ knf′  v ≡ just v′)
 
 sscp-correct b knf knf′ n v v′ hs hc =
-  sscpCore-correct unrollToInit b knf knf′ v v′ n
-                   (λ knf' → refl) hs unrollToInit-is-⊨KNF-unroller hc
+  sscpCore-correct norm∘KNF-unroll b knf knf′ v v′ n
+                   (λ knf' → refl) hs ⊨KNF-unroller-with-norm hc
 
 --
