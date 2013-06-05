@@ -26,23 +26,6 @@ module LM {a} {A : Set a} = Algebra.Monoid (Data.List.monoid A)
 open ≡-Reasoning
 open Membership-≡
 
--- reverse-involutive
-
-reverse-involutive : ∀ {A : Set} (xs : List A) → reverse (reverse xs) ≡ xs
-reverse-involutive [] = refl
-reverse-involutive (x ∷ xs) =
-  begin
-    reverse (reverse (x ∷ xs))
-      ≡⟨ cong reverse (unfold-reverse x xs) ⟩
-    reverse (reverse xs ++ [ x ])
-      ≡⟨ refl ⟩
-    reverse (reverse xs ++ reverse [ x ])
-      ≡⟨ reverse-++-commute (reverse xs) [ x ] ⟩
-    reverse (reverse [ x ]) ++ reverse (reverse xs)
-      ≡⟨ cong (_∷_ x) (reverse-involutive xs) ⟩
-    x ∷ xs
-  ∎
-
 -- foldr-∷ʳ
 
 foldr-∷ʳ : ∀ {A B : Set} (f : A → B → B) → ∀ {n x} xs →
@@ -119,7 +102,7 @@ find-just p x (y ∷ xs) (there pxs) px≡true
 -- just-injective
 
 just-injective : ∀ {ℓ} {A : Set ℓ} {x y : A} →
-  (just x ∶ Maybe A) ≡ just y → x ≡ y
+  (Maybe A ∋ just x) ≡ just y → x ≡ y
 just-injective refl = refl
 
 -- maybe-dec
