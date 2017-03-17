@@ -210,7 +210,7 @@ open import ExpLang
       ≡⟨ refl ⟩
     ⟦⌈ [ [ HD ] ++ sels ]≔[]ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ HD ]
       ≡⟨ []≔[]ⁿ∘++ (v1 ∷ˣ v2) [ HD ] sels ⟩
-    ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ (v1 ∷ˣ v2 !! [ HD ])
+    ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ ((v1 ∷ˣ v2) !! [ HD ])
       ≡⟨ refl ⟩
     ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ v1
       ≡⟨ ⟦⌈⌉⟧∘[]≔[]ⁿ sels v1 h ⟩
@@ -228,7 +228,7 @@ open import ExpLang
       ≡⟨ refl ⟩
     ⟦⌈ [ [ TL ] ++ sels ]≔[]ⁿ ⌉⟧ (v1 ∷ˣ v2) !! [ TL ]
       ≡⟨ []≔[]ⁿ∘++ (v1 ∷ˣ v2) [ TL ] sels ⟩
-    ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ (v1 ∷ˣ v2 !! [ TL ])
+    ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ ((v1 ∷ˣ v2) !! [ TL ])
       ≡⟨ refl ⟩
     ⟦⌈ [ sels ]≔[]ⁿ ⌉⟧ v2
       ≡⟨ ⟦⌈⌉⟧∘[]≔[]ⁿ sels v2 h ⟩

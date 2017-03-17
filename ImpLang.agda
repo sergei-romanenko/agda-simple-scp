@@ -38,8 +38,8 @@ open import PositiveInfo
 -- SWhile language
 -----------------------------------------------------
 
-infix 4 var≔_ while[_]_
-infixr 4 _//_
+infix 6 var≔_ while[_]_
+infixr 5 _//_
 
 data Stmt : Set where
   var≔_    : (t : Trm) → Stmt
@@ -54,7 +54,7 @@ data Stmt : Set where
 -- Big-step evaluation relation for SWhile programs
 -----------------------------------------------------
 
-infix 3 _⊨_⇓_
+infix 4 _⊨_⇓_
 
 data _⊨_⇓_ : Stmt → Val → Val → Set where
   ⇓-var≔ :
@@ -161,7 +161,7 @@ data [_]_⊨While_⇓_ : Trm → Trm → Val → Val → Set where
     (h : [ cond ] e ⊨While ⟦ e ⟧ v ⇓ v′) →
     [ cond ] e ⊨While v ⇓ v′
 
-infix 3 _⊨KNF_⇓_
+infix 4 _⊨KNF_⇓_
 
 data _⊨KNF_⇓_ : KNFProg → Val → Val → Set where
   ⇓-eval :

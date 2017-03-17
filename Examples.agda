@@ -39,9 +39,9 @@ revList-knf : KNFProg
 revList-knf = KNF (Id ∷ []) Hd (Tl $$ Hd ∷ Hd $$ Hd ∷ Tl) Tl
 
 revList-prog : KNFtoProg revList-knf ≡
-  var≔ Id ∷ [] //
+  var≔ (Id ∷ []) //
   while[ Hd ]
-       var≔ Tl $$ Hd ∷ Hd $$ Hd ∷ Tl //
+       var≔ (Tl $$ Hd ∷ Hd $$ Hd ∷ Tl) //
   var≔ Tl
 revList-prog = refl
 
@@ -67,7 +67,7 @@ listHasWFalse-knf =
 
 listHasWFalse-knf-prog :
   KNFtoProg listHasWFalse-knf ≡
-    var≔ Id ∷ [] //
+    var≔ (Id ∷ []) //
     while[ Hd ]
       (var≔ IfNil (Hd $$ Hd) ([] ∷ [] ∷ []) (Tl $$ Hd ∷ Tl)) //
     var≔ Tl

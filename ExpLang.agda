@@ -52,15 +52,15 @@ data Selector : Set where
   HD : Selector
   TL : Selector
 
-infixl 4 _!_ _!!_
+infixl 5 _!_ _!!_
 
 -- _!_
 
 _!_ : (v : Val) → (sel : Selector) → Val
 
 []ˣ ! sel = ↯ˣ
-v1 ∷ˣ v2 ! HD = v1
-v1 ∷ˣ v2 ! TL = v2
+(v1 ∷ˣ v2) ! HD = v1
+(v1 ∷ˣ v2) ! TL = v2
 ↯ˣ ! sel = ↯ˣ
 
 -- _!!_
@@ -341,15 +341,15 @@ data NTrm : Set where
 -- Symbolic application of a selector to a normal-form term.
 --
 
-infixl 4 _!ⁿ_ _!!ⁿ_
+infixl 5 _!ⁿ_ _!!ⁿ_
 
 -- _!ⁿ_
 
 _!ⁿ_ : (nt : NTrm) (sel : Selector) → NTrm
 
 []ⁿ !ⁿ sel = ↯ⁿ
-nt1 ∷ⁿ nt2 !ⁿ HD = nt1
-nt1 ∷ⁿ nt2 !ⁿ TL = nt2
+(nt1 ∷ⁿ nt2) !ⁿ HD = nt1
+(nt1 ∷ⁿ nt2) !ⁿ TL = nt2
 ⟪ sels ⟫ⁿ !ⁿ sel = ⟪ sels ++ [ sel ] ⟫ⁿ
 IfNilⁿ sels nt1 nt2 !ⁿ sel =
   IfNilⁿ sels (nt1 !ⁿ sel) (nt2 !ⁿ sel)
@@ -444,7 +444,7 @@ nt !!ⁿ sels =
 
 ⟦⌈⌉⟧∘!!ⁿ nt (sel ∷ sels) v =
   begin
-    ⟦⌈ nt !!ⁿ sel ∷ sels ⌉⟧ v
+    ⟦⌈ nt !!ⁿ (sel ∷ sels) ⌉⟧ v
       ≡⟨ refl ⟩
     ⟦⌈ nt !ⁿ sel !!ⁿ sels ⌉⟧ v
       ≡⟨ ⟦⌈⌉⟧∘!!ⁿ (nt !ⁿ sel) sels v ⟩
@@ -465,7 +465,7 @@ nt !!ⁿ sels =
   rewrite proj₂ LM.identity sels1
   = refl
 !!ⁿ∘⟪⟫ⁿ sels1 (sel ∷ sels) = begin
-  ⟪ sels1 ⟫ⁿ !!ⁿ sel ∷ sels
+  ⟪ sels1 ⟫ⁿ !!ⁿ (sel ∷ sels)
     ≡⟨ refl ⟩
   ⟪ sels1 ++ sel ∷ [] ⟫ⁿ !!ⁿ sels
     ≡⟨ !!ⁿ∘⟪⟫ⁿ (sels1 ++ sel ∷ []) sels ⟩
@@ -482,13 +482,13 @@ nt !!ⁿ sels =
 
 -- _○⟪_⟫ⁿ
 
-infixl 4 _○⟪_⟫ⁿ _○_
+infixl 5 _○⟪_⟫ⁿ _○_
 
 _○⟪_⟫ⁿ : (nt : NTrm) (sels : List Selector) → NTrm
 
 []ⁿ ○⟪ sels ⟫ⁿ =
   []ⁿ
-nt1 ∷ⁿ nt2 ○⟪ sels ⟫ⁿ =
+(nt1 ∷ⁿ nt2) ○⟪ sels ⟫ⁿ =
   (nt1 ○⟪ sels ⟫ⁿ) ∷ⁿ (nt2 ○⟪ sels ⟫ⁿ)
 ⟪ sels2 ⟫ⁿ ○⟪ sels ⟫ⁿ =
   ⟪ sels ++ sels2 ⟫ⁿ
@@ -619,7 +619,7 @@ _○_ : NTrm → NTrm → NTrm
 []ⁿ ○ nt2 =
   []ⁿ
 
-nt' ∷ⁿ nt'' ○ nt2 =
+(nt' ∷ⁿ nt'') ○ nt2 =
   (nt' ○ nt2) ∷ⁿ (nt'' ○ nt2)
 
 ⟪ sels ⟫ⁿ ○ nt2 =
@@ -848,16 +848,16 @@ IfNilⁿ sels nt' nt'' ○ nt2 =
       ∎
 
     helper (nt1 ∷ⁿ nt3) = begin
-      ⟦⌈ IfNilⁿ sels nt' nt'' ○ nt1 ∷ⁿ nt3 ⌉⟧ v
+      ⟦⌈ IfNilⁿ sels nt' nt'' ○ (nt1 ∷ⁿ nt3) ⌉⟧ v
         ≡⟨ refl ⟩
-      ⟦⌈ IfNilⁿ⟱ (nt1 ∷ⁿ nt3 !!ⁿ sels)
-                 (nt' ○ nt1 ∷ⁿ nt3) (nt'' ○ nt1 ∷ⁿ nt3) ⌉⟧ v
+      ⟦⌈ IfNilⁿ⟱ ((nt1 ∷ⁿ nt3) !!ⁿ sels)
+                 (nt' ○ (nt1 ∷ⁿ nt3)) (nt'' ○ (nt1 ∷ⁿ nt3)) ⌉⟧ v
         ≡⟨ ⟦⌈⌉⟧∘IfNilⁿ⟱
-             (nt1 ∷ⁿ nt3 !!ⁿ sels)
-             (nt' ○ nt1 ∷ⁿ nt3) (nt'' ○ nt1 ∷ⁿ nt3) v ⟩
-      ifNil (⟦⌈ nt1 ∷ⁿ nt3 !!ⁿ sels ⌉⟧ v)
-            (⟦⌈ nt' ○ nt1 ∷ⁿ nt3 ⌉⟧ v)
-            (⟦⌈ nt'' ○ nt1 ∷ⁿ nt3 ⌉⟧ v)
+             ((nt1 ∷ⁿ nt3) !!ⁿ sels)
+             (nt' ○ (nt1 ∷ⁿ nt3)) (nt'' ○ (nt1 ∷ⁿ nt3)) v ⟩
+      ifNil (⟦⌈ (nt1 ∷ⁿ nt3) !!ⁿ sels ⌉⟧ v)
+            (⟦⌈ nt' ○ (nt1 ∷ⁿ nt3) ⌉⟧ v)
+            (⟦⌈ nt'' ○ (nt1 ∷ⁿ nt3) ⌉⟧ v)
       ∎
 
     helper ↯ⁿ = begin
@@ -1004,7 +1004,7 @@ t [ TL ∷ sels ]≔ⁿ t′ =
 
 !!ⁿ∘[]≔ⁿ-id [] t t′ = refl
 !!ⁿ∘[]≔ⁿ-id (HD ∷ sels) t t′ = begin
-  t [ HD ∷ sels ]≔ⁿ t′ !!ⁿ HD ∷ sels
+  t [ HD ∷ sels ]≔ⁿ t′ !!ⁿ (HD ∷ sels)
     ≡⟨ refl ⟩
   (t !ⁿ HD) [ sels ]≔ⁿ t′ !!ⁿ sels
     ≡⟨ !!ⁿ∘[]≔ⁿ-id sels (t !ⁿ HD) t′ ⟩
@@ -1034,7 +1034,7 @@ t [ TL ∷ sels ]≔ⁿ t′ =
             ([]≔ⁿ∘++ sels1 sels2 (nt !ⁿ HD) nt′) ⟩
   (nt !ⁿ HD) [ sels1 ]≔ⁿ ((nt !ⁿ HD !!ⁿ sels1) [ sels2 ]≔ⁿ nt′) ∷ⁿ (nt !ⁿ TL)
     ≡⟨ refl ⟩
-  nt [ HD ∷ sels1 ]≔ⁿ ((nt !!ⁿ HD ∷ sels1) [ sels2 ]≔ⁿ nt′)
+  nt [ HD ∷ sels1 ]≔ⁿ ((nt !!ⁿ (HD ∷ sels1)) [ sels2 ]≔ⁿ nt′)
   ∎
 []≔ⁿ∘++ (TL ∷ sels1) sels2 nt nt′ =
   cong (_∷ⁿ_ (nt !ⁿ HD))
@@ -1077,7 +1077,7 @@ commonPrefix? eq (x ∷ xs) (y ∷ ys) with eq x y
 
 commonPrefix∘++ :
   ∀ {ℓ} {A : Set ℓ} (eq : (u v : A) → Dec (u ≡ v)) (xs ys : List A) →
-    commonPrefix eq xs (xs ++ ys) ≡ xs , [] , ys
+    commonPrefix eq xs (xs ++ ys) ≡ (xs , [] , ys)
 
 commonPrefix∘++ eq [] ys = refl
 commonPrefix∘++ eq (x ∷ xs) ys with eq x x
@@ -1088,7 +1088,7 @@ commonPrefix∘++ eq (x ∷ xs) ys with eq x x
 
 commonPrefix-[] :
   ∀ {ℓ} {A : Set ℓ} (eq : (u v : A) → Dec (u ≡ v)) (xs : List A) →
-    commonPrefix eq xs [] ≡ [] , xs , []
+    commonPrefix eq xs [] ≡ ([] , xs , [])
 commonPrefix-[] eq [] = refl
 commonPrefix-[] eq (x ∷ xs) = refl
 
@@ -1096,7 +1096,7 @@ commonPrefix-[] eq (x ∷ xs) = refl
 
 !!ⁿ∘[]≔ⁿ∘++ :
   ∀ (ws us vs : List Selector) (nt nt′ : NTrm) →
-    nt [ ws ++ vs ]≔ⁿ nt′ !!ⁿ ws ++ us
+    nt [ ws ++ vs ]≔ⁿ nt′ !!ⁿ (ws ++ us)
       ≡ (nt !!ⁿ ws) [ vs ]≔ⁿ nt′ !!ⁿ us
 
 !!ⁿ∘[]≔ⁿ∘++ [] us vs nt nt′ = refl
